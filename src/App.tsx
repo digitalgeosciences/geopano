@@ -12,8 +12,8 @@ import Privacy from "./pages/Privacy";
 
 export default function App() {
   const [view, setView] = useState<View>("landing");
-  const [selectedPathId, setSelectedPathId] = useState("st00009-path");
-  const [selectedStopId, setSelectedStopId] = useState("st00009");
+  const [selectedPathId, setSelectedPathId] = useState("sp00009-path");
+  const [selectedStopId, setSelectedStopId] = useState("sp00009");
 
   function handleSelectStop(pathId: string, stopId: string) {
     setSelectedPathId(pathId);

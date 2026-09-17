@@ -132,7 +132,7 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop }: Prop
   const curPath = paths.find((p) => p.id === pathId) || paths[0];
   const stopIdx = curPath.stops.findIndex((s) => s.id === stopId);
   const curStop = curPath.stops[stopIdx] || curPath.stops[0];
-  const panoramaUrl = curStop.panorama || "/uploads/st00009.jpg";
+  const panoramaUrl = curStop.panorama || "/uploads/sp00009.jpg";
 
   const [localAnns, setLocalAnns] = useState<LocalAnnotation[]>(() =>
     loadAnns(pathId, stopId, curStop.annotations)

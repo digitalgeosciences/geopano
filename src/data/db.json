@@ -1,0 +1,270 @@
+{
+  "paths": [
+    {
+      "id": "pt00001",
+      "name": "Qiddiya Descent",
+      "city": "Riyadh, Saudi Arabia",
+      "bg": "linear-gradient(165deg,#A0724A,#E8D5AE)",
+      "stops": [
+        {
+          "id": "sp00001",
+          "title": "Qiddiya Descent A",
+          "ll": [24.52807809, 46.3950212],
+          "lat": "24.5281° N",
+          "lon": "46.3950° E",
+          "blurb": "First outcrop station along the Qiddiya escarpment descent. Exposed sedimentary units of the Wajid and Khuff sequences characterise the plateau edge south-west of Riyadh.",
+          "panorama": "https://raw.githubusercontent.com/cpgone/Geopano/main/public/uploads/st00001.jpg",
+          "annotations": []
+        },
+        {
+          "id": "sp00002",
+          "title": "Qiddiya Descent B",
+          "ll": [24.52816215, 46.39552972],
+          "lat": "24.5282° N",
+          "lon": "46.3955° E",
+          "blurb": "Mid-slope station documenting the transition from the plateau caprock to the talus slope. Cross-bedded sandstone packages visible in the upper cliff face.",
+          "panorama": "https://raw.githubusercontent.com/cpgone/Geopano/main/public/uploads/st00002.jpg",
+          "annotations": []
+        },
+        {
+          "id": "sp00003",
+          "title": "Qiddiya Descent C",
+          "ll": [24.52826183, 46.3962496],
+          "lat": "24.5283° N",
+          "lon": "46.3962° E",
+          "blurb": "Lower escarpment exposure where jointing and erosional fluting in the sandstone record long-term weathering under an arid regime.",
+          "panorama": "https://raw.githubusercontent.com/cpgone/Geopano/main/public/uploads/st00003.jpg",
+          "annotations": []
+        },
+        {
+          "id": "sp00004",
+          "title": "Qiddiya Descent D",
+          "ll": [24.52882854, 46.40062737],
+          "lat": "24.5288° N",
+          "lon": "46.4006° E",
+          "blurb": "Base-of-slope station. Angular debris and desert varnish on fallen blocks provide evidence of episodic cliff retreat over the Quaternary.",
+          "panorama": "https://raw.githubusercontent.com/cpgone/Geopano/main/public/uploads/st00004.jpg",
+          "annotations": []
+        }
+      ]
+    },
+    {
+      "id": "sp00005-path",
+      "name": "Umm Jabal Lake",
+      "city": "Layala, Saudi Arabia",
+      "bg": "linear-gradient(165deg,#2C4A3E,#6A9E78)",
+      "stops": [
+        {
+          "id": "sp00005",
+          "title": "Umm Jabal Lake",
+          "ll": [22.17167807, 46.71224495],
+          "lat": "22.1717° N",
+          "lon": "46.7122° E",
+          "blurb": "Maar lake within the Harrat Kishb volcanic field — one of the few natural freshwater lakes in Saudi Arabia. The circular basin is a phreatomagmatic explosion crater now permanently filled with water.",
+          "panorama": "https://raw.githubusercontent.com/cpgone/Geopano/main/public/uploads/st00005.jpg",
+          "annotations": []
+        }
+      ]
+    },
+    {
+      "id": "sp00006-path",
+      "name": "Jabal KFUPM",
+      "city": "Dhahran, Saudi Arabia",
+      "bg": "linear-gradient(165deg,#2E5F72,#9ECAD4)",
+      "stops": [
+        {
+          "id": "sp00006",
+          "title": "Jabal KFUPM",
+          "ll": [26.31014648, 50.14218713],
+          "lat": "26.3101° N",
+          "lon": "50.1422° E",
+          "blurb": "Rock outcrop near King Fahd University of Petroleum and Minerals. Jurassic carbonate units of the Dammam Formation are exposed here, documenting the shallow marine carbonate platform of the Eastern Arabian shelf.",
+          "panorama": "https://raw.githubusercontent.com/cpgone/Geopano/main/public/uploads/st00006.jpg",
+          "annotations": []
+        }
+      ]
+    },
+    {
+      "id": "sp00007-path",
+      "name": "Wabah Crater",
+      "city": "Hafir Kishb, Saudi Arabia",
+      "bg": "linear-gradient(165deg,#7A2C20,#D98060)",
+      "stops": [
+        {
+          "id": "sp00007",
+          "title": "Wabah Crater",
+          "ll": [22.90108618, 41.13916033],
+          "lat": "22.9011° N",
+          "lon": "41.1392° E",
+          "blurb": "Maar crater approximately 250 m deep and 2 km wide in the Harrat Kishb volcanic field. Phreatomagmatic eruption ejected basement xenoliths now visible in the tuff ring walls surrounding the crater floor.",
+          "panorama": "https://raw.githubusercontent.com/cpgone/Geopano/main/public/uploads/st00007.jpg",
+          "annotations": []
+        }
+      ]
+    },
+    {
+      "id": "st00008-path",
+      "name": "Richat Structure",
+      "city": "Mauritania",
+      "bg": "linear-gradient(165deg,#4A6080,#B0C8D8)",
+      "stops": [
+        {
+          "id": "st00008",
+          "title": "Richat Structure",
+          "ll": [21.08098363, -11.47453958],
+          "lat": "21.0810° N",
+          "lon": "11.4745° W",
+          "blurb": "The Eye of the Sahara — a 50 km diameter erosional dome exposing Proterozoic basement through concentric rings of Palaeozoic sediments. Intrusive breccia pipes and carbonatite dykes visible at the centre.",
+          "panorama": "https://raw.githubusercontent.com/cpgone/Geopano/main/public/uploads/st00008.jpg",
+          "annotations": []
+        }
+      ]
+    },
+    {
+      "id": "st00009-path",
+      "name": "Dadan",
+      "city": "AlUla, Saudi Arabia",
+      "bg": "linear-gradient(165deg,#B4794A,#E6D3AE)",
+      "stops": [
+        {
+          "id": "st00009",
+          "title": "Dadan",
+          "ll": [26.64926389, 37.92042222],
+          "lat": "26.6493° N",
+          "lon": "37.9204° E",
+          "blurb": "Ancient capital of the Dadanite and Lihyanite kingdoms (9th–1st century BC). Rock-cut lion tombs and Dadanite inscriptions are carved into the Hisma sandstone cliffs of the AlUla valley.",
+          "panorama": "https://raw.githubusercontent.com/cpgone/Geopano/main/public/uploads/st00009.jpg",
+          "annotations": []
+        }
+      ]
+    },
+    {
+      "id": "st00010-path",
+      "name": "Nabkha",
+      "city": "Araiq Addasm, Saudi Arabia",
+      "bg": "linear-gradient(165deg,#C4A060,#F0E0A8)",
+      "stops": [
+        {
+          "id": "st00010",
+          "title": "Nabkha",
+          "ll": [25.31795593, 42.51813881],
+          "lat": "25.3180° N",
+          "lon": "42.5181° E",
+          "blurb": "Nebkha dune mound anchored by xerophytic shrubs in the Araiq Addasm sand sea. Records aeolian sediment trapping dynamics and vegetation-dune interaction under hyper-arid conditions.",
+          "panorama": "https://raw.githubusercontent.com/cpgone/Geopano/main/public/uploads/st00010.jpg",
+          "annotations": []
+        }
+      ]
+    }
+  ],
+  "library": [
+    {
+      "id": "qiddiya-lib",
+      "title": "Qiddiya Descent",
+      "country": "Saudi Arabia",
+      "cat": "Geology",
+      "notes": 0,
+      "pathName": "Qiddiya Descent · 4 stops",
+      "blurb": "Sedimentary escarpment traverse south-west of Riyadh documenting Wajid and Khuff Formation exposures across four stations from plateau caprock to talus base.",
+      "bg": "linear-gradient(165deg,#A0724A,#E8D5AE)",
+      "stopId": "sp00001",
+      "pathId": "pt00001",
+      "hasImage": false
+    },
+    {
+      "id": "umm-jabal-lib",
+      "title": "Umm Jabal Lake",
+      "country": "Saudi Arabia",
+      "cat": "Geology",
+      "notes": 0,
+      "pathName": "Umm Jabal Lake · 1 stop",
+      "blurb": "Maar lake in the Harrat Kishb volcanic field — one of Saudi Arabia's few natural lakes, occupying a phreatomagmatic explosion crater.",
+      "bg": "linear-gradient(165deg,#2C4A3E,#6A9E78)",
+      "stopId": "sp00005",
+      "pathId": "sp00005-path",
+      "hasImage": false
+    },
+    {
+      "id": "kfupm-lib",
+      "title": "Jabal KFUPM",
+      "country": "Saudi Arabia",
+      "cat": "Geology",
+      "notes": 0,
+      "pathName": "Jabal KFUPM · 1 stop",
+      "blurb": "Jurassic Dammam Formation carbonate outcrop in Dhahran, documenting the shallow marine platform of the Eastern Arabian shelf.",
+      "bg": "linear-gradient(165deg,#2E5F72,#9ECAD4)",
+      "stopId": "sp00006",
+      "pathId": "sp00006-path",
+      "hasImage": false
+    },
+    {
+      "id": "wabah-lib",
+      "title": "Wabah Crater",
+      "country": "Saudi Arabia",
+      "cat": "Geology",
+      "notes": 0,
+      "pathName": "Wabah Crater · 1 stop",
+      "blurb": "Maar crater 250 m deep in the Harrat Kishb volcanic field. Tuff ring walls contain basement xenoliths ejected during phreatomagmatic eruption.",
+      "bg": "linear-gradient(165deg,#7A2C20,#D98060)",
+      "stopId": "sp00007",
+      "pathId": "sp00007-path",
+      "hasImage": false
+    },
+    {
+      "id": "richat-lib",
+      "title": "Richat Structure",
+      "country": "Mauritania",
+      "cat": "Geology",
+      "notes": 0,
+      "pathName": "Richat Structure · 1 stop",
+      "blurb": "The Eye of the Sahara — a 50 km erosional dome exposing Proterozoic basement through concentric Palaeozoic sediment rings.",
+      "bg": "linear-gradient(165deg,#4A6080,#B0C8D8)",
+      "stopId": "st00008",
+      "pathId": "st00008-path",
+      "hasImage": false
+    },
+    {
+      "id": "dadan-lib",
+      "title": "Dadan",
+      "country": "Saudi Arabia",
+      "cat": "Heritage",
+      "notes": 0,
+      "pathName": "Dadan · 1 stop",
+      "blurb": "Ancient Dadanite and Lihyanite capital. Rock-cut lion tombs and inscriptions carved into Hisma sandstone cliffs of the AlUla valley (9th–1st century BC).",
+      "bg": "linear-gradient(165deg,#B4794A,#E6D3AE)",
+      "stopId": "st00009",
+      "pathId": "st00009-path",
+      "hasImage": true
+    },
+    {
+      "id": "nabkha-lib",
+      "title": "Nabkha",
+      "country": "Saudi Arabia",
+      "cat": "Geology",
+      "notes": 0,
+      "pathName": "Nabkha · 1 stop",
+      "blurb": "Nebkha dune mounds anchored by xerophytic shrubs in the Araiq Addasm sand sea, recording aeolian sediment trapping under hyper-arid conditions.",
+      "bg": "linear-gradient(165deg,#C4A060,#F0E0A8)",
+      "stopId": "st00010",
+      "pathId": "st00010-path",
+      "hasImage": false
+    }
+  ],
+  "heroPath": {
+    "name": "Qiddiya Descent",
+    "stopCount": 4,
+    "distanceKm": 0.6,
+    "panorama": "https://raw.githubusercontent.com/cpgone/Geopano/main/public/uploads/st00009.jpg",
+    "hotspots": [
+      { "label": "Qiddiya Descent A", "leftPct": 18 },
+      { "label": "Qiddiya Descent B", "leftPct": 42 },
+      { "label": "Qiddiya Descent C", "leftPct": 66 }
+    ],
+    "stops": [
+      { "title": "Descent A", "leftPct": 16, "topPct": 68 },
+      { "title": "Descent B", "leftPct": 38, "topPct": 50 },
+      { "title": "Descent C", "leftPct": 60, "topPct": 60 },
+      { "title": "Descent D", "leftPct": 82, "topPct": 40 }
+    ]
+  }
+}

@@ -1,0 +1,32 @@
+@import 'tailwindcss';
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #F4F2ED;
+  color: #0B0F0E;
+  font-family: 'Instrument Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: #0B0F0E; text-decoration: none; }
+a:hover { color: #14504A; }
+button { font: inherit; cursor: pointer; }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(11,15,14,.18); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(11,15,14,.32); }
+
+@keyframes gp-dash { to { stroke-dashoffset: -28; } }
+@keyframes gp-rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes gp-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes gp-rule { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes gp-mark { from { background-size: 0% 100%; } to { background-size: 100% 100%; } }
+@keyframes gp-sway { from { transform: translateX(0); } to { transform: translateX(-38%); } }
+@keyframes gp-ping { 0% { transform: translate(-50%,-50%) scale(1); opacity:.5; } 70%,100% { transform: translate(-50%,-50%) scale(2.6); opacity:0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+}

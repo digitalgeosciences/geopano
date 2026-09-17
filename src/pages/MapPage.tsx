@@ -1,9 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import db from "../data/db.json";
-import type { Path, View } from "../types";
+import type { Path, Stop, View } from "../types";
 import { useIsMobile } from "../hooks/useWindowWidth";
-
-const paths = db.paths as unknown as Path[];
+import {
+  getAllPaths,
+  registerPanoramaUrl,
+  createStandaloneStop,
+  createNewPathWithStop,
+  addStopToPath,
+} from "../data/pathsData";
 
 interface Props {
   onNav: (v: View) => void;
@@ -51,20 +55,63 @@ const CloseX = () => (
 );
 
 // ── Add Stop / Path modal ─────────────────────────────────────────────────────
-function AddModal({ pathIdx, onClose }: { pathIdx: number; onClose: () => void }) {
+interface AddModalProps {
+  paths: Path[];
+  pathIdx: number;
+  initialLat?: string;
+  initialLng?: string;
+  onClose: () => void;
+  onPickOnMap: () => void;
+  onCreated: (path: Path, stopId?: string) => void;
+  onNavTo360: (pathId: string, stopId: string) => void;
+}
+
+function AddModal({
+  paths,
+  pathIdx,
+  initialLat,
+  initialLng,
+  onClose,
+  onPickOnMap,
+  onCreated,
+  onNavTo360,
+}: AddModalProps) {
   const [tab, setTab] = useState<"stop" | "path">("stop");
+
+  // Stop fields
   const [stopName, setStopName] = useState("");
-  const [lat, setLat] = useState("");
-  const [lng, setLng] = useState("");
-  const [selPath, setSelPath] = useState(pathIdx);
+  const [lat, setLat] = useState(initialLat || "");
+  const [lng, setLng] = useState(initialLng || "");
+  const [blurb, setBlurb] = useState("");
+
+  // 360 Panorama fields
+  const [panoMode, setPanoMode] = useState<"upload" | "url">("upload");
+  const [panoFile, setPanoFile] = useState<File | null>(null);
+  const [panoPreview, setPanoPreview] = useState<string>("");
+  const [panoUrl, setPanoUrl] = useState<string>("");
+
+  // Destination mode (independent / not forced to existing data)
+  const [destMode, setDestMode] = useState<"standalone" | "new_path" | "existing_path">("standalone");
+  const [newPathName, setNewPathName] = useState("");
+  const [newPathCity, setNewPathCity] = useState("");
+  const [selPathId, setSelPathId] = useState(paths[pathIdx]?.id || paths[0]?.id || "");
+
+  // Path tab fields
   const [pathName, setPathName] = useState("");
   const [pathCity, setPathCity] = useState("");
-  const [done, setDone] = useState<"stop" | "path" | null>(null);
+
+  // Success result
+  const [doneInfo, setDoneInfo] = useState<{ path: Path; stop?: Stop } | null>(null);
+
+  useEffect(() => {
+    if (initialLat) setLat(initialLat);
+    if (initialLng) setLng(initialLng);
+  }, [initialLat, initialLng]);
 
   const inp: React.CSSProperties = {
     width: "100%", padding: "10px 14px", borderRadius: 10,
     border: "1px solid rgba(11,15,14,.18)", background: "#F7F6F1",
-    fontFamily: "'Instrument Sans',sans-serif", fontSize: 14,
+    fontFamily: "'Instrument Sans',sans-serif", fontSize: 13,
     color: "#0B0F0E", outline: "none", boxSizing: "border-box",
   };
   const lbl: React.CSSProperties = {
@@ -72,97 +119,338 @@ function AddModal({ pathIdx, onClose }: { pathIdx: number; onClose: () => void }
     fontSize: 10, letterSpacing: ".14em", color: "#5A635F", marginBottom: 6,
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPanoFile(file);
+      const preview = URL.createObjectURL(file);
+      setPanoPreview(preview);
+    }
+  };
+
+  const handleStopSubmit = () => {
+    if (!stopName.trim() || !lat.trim() || !lng.trim()) return;
+    const numLat = parseFloat(lat);
+    const numLng = parseFloat(lng);
+    if (isNaN(numLat) || isNaN(numLng)) return;
+
+    const stopId = `sp_${Date.now()}`;
+    let finalPano = "/uploads/sp00009.jpg";
+
+    if (panoMode === "upload" && panoFile) {
+      const objUrl = panoPreview || URL.createObjectURL(panoFile);
+      registerPanoramaUrl(stopId, objUrl);
+      finalPano = objUrl;
+    } else if (panoMode === "url" && panoUrl.trim()) {
+      finalPano = panoUrl.trim();
+    }
+
+    const newStop: Stop = {
+      id: stopId,
+      title: stopName.trim(),
+      ll: [numLat, numLng],
+      lat: `${Math.abs(numLat).toFixed(4)}° ${numLat >= 0 ? "N" : "S"}`,
+      lon: `${Math.abs(numLng).toFixed(4)}° ${numLng >= 0 ? "E" : "W"}`,
+      blurb: blurb.trim() || "Field outcrop and geological observation point.",
+      panorama: finalPano,
+      annotations: [],
+    };
+
+    let targetPath: Path;
+    if (destMode === "standalone") {
+      targetPath = createStandaloneStop(newStop, newPathCity.trim() || "Outcrop Station");
+    } else if (destMode === "new_path") {
+      targetPath = createNewPathWithStop(newPathName.trim() || stopName.trim(), newPathCity.trim() || "Saudi Arabia", newStop);
+    } else {
+      targetPath = addStopToPath(selPathId, newStop);
+    }
+
+    setDoneInfo({ path: targetPath, stop: newStop });
+    onCreated(targetPath, stopId);
+  };
+
+  const handlePathSubmit = () => {
+    if (!pathName.trim() || !pathCity.trim()) return;
+    const targetPath = createNewPathWithStop(pathName.trim(), pathCity.trim());
+    setDoneInfo({ path: targetPath });
+    onCreated(targetPath);
+  };
+
   return (
     <div
-      style={{ position: "fixed", inset: 0, zIndex: 800, background: "rgba(11,15,14,.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+      style={{ position: "fixed", inset: 0, zIndex: 800, background: "rgba(11,15,14,.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div style={{ width: "min(480px,100%)", borderRadius: 20, overflow: "hidden", background: "#FFFDF8", border: "1px solid #0B0F0E", boxShadow: "0 32px 72px -24px rgba(11,15,14,.9)" }}>
+      <div style={{ width: "min(520px,100%)", maxHeight: "90vh", display: "flex", flexDirection: "column", borderRadius: 20, overflow: "hidden", background: "#FFFDF8", border: "1px solid #0B0F0E", boxShadow: "0 32px 72px -24px rgba(11,15,14,.9)" }}>
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", gap: 0, padding: "14px 18px", borderBottom: "1px solid rgba(11,15,14,.1)" }}>
-          <div style={{ display: "flex", gap: 4, flex: 1 }}>
+        <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", borderBottom: "1px solid rgba(11,15,14,.1)" }}>
+          <div style={{ display: "flex", gap: 6 }}>
             {(["stop", "path"] as const).map((t) => (
               <button
                 key={t}
-                onClick={() => { setTab(t); setDone(null); }}
+                onClick={() => { setTab(t); setDoneInfo(null); }}
                 style={{ padding: "7px 18px", borderRadius: 999, border: "1px solid", borderColor: tab === t ? "#0B0F0E" : "rgba(11,15,14,.18)", background: tab === t ? "#0B0F0E" : "transparent", color: tab === t ? "#C9F24D" : "#5A635F", fontFamily: "'JetBrains Mono',monospace", fontSize: 10, letterSpacing: ".14em", cursor: "pointer", transition: "all .15s" }}
               >
-                {t === "stop" ? "NEW STOP" : "NEW PATH"}
+                {t === "stop" ? "NEW STOP / 360°" : "NEW PATH"}
               </button>
             ))}
           </div>
           <button onClick={onClose} style={closeBtn}><CloseX /></button>
         </div>
 
-        {/* Body */}
-        <div style={{ padding: "24px 22px 22px" }}>
-          {done ? (
+        {/* Scrollable Body */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "20px 22px" }}>
+          {doneInfo ? (
             <div style={{ textAlign: "center", padding: "16px 0" }}>
-              <div style={{ width: 44, height: 44, borderRadius: 999, background: "#C9F24D", border: "1px solid #0B0F0E", display: "grid", placeItems: "center", margin: "0 auto 14px", fontSize: 22 }}>✓</div>
-              <div style={{ fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 18, marginBottom: 6 }}>
-                {done === "stop" ? "Stop added" : "Path created"}
+              <div style={{ width: 48, height: 48, borderRadius: 999, background: "#C9F24D", border: "1px solid #0B0F0E", display: "grid", placeItems: "center", margin: "0 auto 14px", fontSize: 24 }}>✓</div>
+              <div style={{ fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 20, marginBottom: 6 }}>
+                {doneInfo.stop ? "360° Stop Added Successfully" : "Path Created Successfully"}
               </div>
-              <div style={{ fontSize: 14, color: "#5A635F", marginBottom: 20 }}>
-                {done === "stop" ? `Pinned to ${paths[selPath].name}` : `"${pathName}" is ready`}
+              <p style={{ fontSize: 14, color: "#5A635F", margin: "0 auto 20px", maxWidth: 360 }}>
+                {doneInfo.stop
+                  ? `"${doneInfo.stop.title}" is ready and pinned at ${doneInfo.stop.lat}, ${doneInfo.stop.lon}.`
+                  : `"${doneInfo.path.name}" has been created and saved.`}
+              </p>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 320, margin: "0 auto" }}>
+                {doneInfo.stop && (
+                  <button
+                    onClick={() => {
+                      onNavTo360(doneInfo.path.id, doneInfo.stop!.id);
+                    }}
+                    style={{ padding: "12px 24px", borderRadius: 999, background: "#C9F24D", color: "#0B0F0E", fontWeight: 700, fontSize: 14, border: "1px solid #0B0F0E", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "transform .1s" }}
+                  >
+                    <span>Open in 360° Viewer</span>
+                    <span>↗</span>
+                  </button>
+                )}
+                <button
+                  onClick={onClose}
+                  style={{ padding: "12px 24px", borderRadius: 999, background: "#0B0F0E", color: "#FFFDF8", fontWeight: 600, fontSize: 14, border: "none", cursor: "pointer" }}
+                >
+                  View on Map
+                </button>
               </div>
-              <button onClick={onClose} style={{ padding: "12px 32px", borderRadius: 999, background: "#0B0F0E", color: "#C9F24D", fontWeight: 600, fontSize: 14, border: "none", cursor: "pointer", fontFamily: "inherit" }}>
-                Done
-              </button>
             </div>
           ) : tab === "stop" ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+              {/* Stop title */}
               <div>
-                <span style={lbl}>STOP NAME</span>
-                <input value={stopName} onChange={(e) => setStopName(e.target.value)} placeholder="e.g. Wabah Crater Rim" style={inp} />
+                <span style={lbl}>STOP / STATION NAME *</span>
+                <input value={stopName} onChange={(e) => setStopName(e.target.value)} placeholder="e.g. Al-Wahbah Crater Rim" style={inp} />
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <span style={lbl}>LATITUDE</span>
-                  <input value={lat} onChange={(e) => setLat(e.target.value)} placeholder="22.9011" style={inp} />
+
+              {/* 360 Panorama Source */}
+              <div style={{ padding: "14px 16px", borderRadius: 14, background: "rgba(11,15,14,.03)", border: "1px solid rgba(11,15,14,.1)" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                  <span style={lbl}>360° EQUIRECTANGULAR PANORAMA</span>
+                  <div style={{ display: "flex", gap: 4 }}>
+                    <button
+                      type="button"
+                      onClick={() => setPanoMode("upload")}
+                      style={{ padding: "4px 10px", borderRadius: 6, fontSize: 10, fontFamily: "'JetBrains Mono',monospace", border: "1px solid", borderColor: panoMode === "upload" ? "#0B0F0E" : "transparent", background: panoMode === "upload" ? "#0B0F0E" : "transparent", color: panoMode === "upload" ? "#C9F24D" : "#5A635F", cursor: "pointer" }}
+                    >
+                      FILE
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPanoMode("url")}
+                      style={{ padding: "4px 10px", borderRadius: 6, fontSize: 10, fontFamily: "'JetBrains Mono',monospace", border: "1px solid", borderColor: panoMode === "url" ? "#0B0F0E" : "transparent", background: panoMode === "url" ? "#0B0F0E" : "transparent", color: panoMode === "url" ? "#C9F24D" : "#5A635F", cursor: "pointer" }}
+                    >
+                      URL
+                    </button>
+                  </div>
                 </div>
-                <div>
-                  <span style={lbl}>LONGITUDE</span>
-                  <input value={lng} onChange={(e) => setLng(e.target.value)} placeholder="41.1392" style={inp} />
-                </div>
+
+                {panoMode === "upload" ? (
+                  <div>
+                    <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "16px 14px", border: "1.5px dashed rgba(11,15,14,.25)", borderRadius: 10, background: "#FFFDF8", cursor: "pointer", transition: "border .15s" }}>
+                      <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileChange} style={{ display: "none" }} />
+                      <div style={{ width: 32, height: 32, borderRadius: 999, background: "#C9F24D", display: "grid", placeItems: "center", border: "1px solid #0B0F0E", marginBottom: 6 }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 15V3M8 7l4-4 4 4" stroke="#0B0F0E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /><path d="M20 17v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2" stroke="#0B0F0E" strokeWidth="1.8" strokeLinecap="round" /></svg>
+                      </div>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "#0B0F0E" }}>
+                        {panoFile ? panoFile.name : "Choose 360° Photo (.jpg / .png)"}
+                      </span>
+                      <span style={{ fontSize: 11, color: "#5A635F", marginTop: 2 }}>
+                        {panoFile ? `${(panoFile.size / 1024 / 1024).toFixed(2)} MB — Ready to view in 360°` : "Equirectangular 2:1 image recommended"}
+                      </span>
+                    </label>
+                    {panoPreview && (
+                      <div style={{ marginTop: 10, position: "relative", height: 80, borderRadius: 8, overflow: "hidden", border: "1px solid rgba(11,15,14,.15)" }}>
+                        <img src={panoPreview} alt="Panorama preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        <span style={{ position: "absolute", bottom: 6, right: 8, background: "rgba(11,15,14,.75)", color: "#C9F24D", padding: "2px 6px", borderRadius: 4, fontSize: 9, fontFamily: "'JetBrains Mono',monospace" }}>360° LOADED</span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    <input
+                      value={panoUrl}
+                      onChange={(e) => setPanoUrl(e.target.value)}
+                      placeholder="https://... or /uploads/sp00001.jpg"
+                      style={inp}
+                    />
+                    <span style={{ display: "block", fontSize: 11, color: "#5A635F", marginTop: 4 }}>
+                      Leave blank to use the default high-resolution geological panorama.
+                    </span>
+                  </div>
+                )}
               </div>
+
+              {/* Coordinates */}
               <div>
-                <span style={lbl}>ASSIGN TO PATH</span>
-                <select value={selPath} onChange={(e) => setSelPath(Number(e.target.value))} style={{ ...inp, appearance: "none" as React.CSSProperties["appearance"] }}>
-                  {paths.map((p, i) => <option key={p.id} value={i}>{p.name}</option>)}
-                </select>
-              </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                  <span style={lbl}>COORDINATES *</span>
                   <button
-                    onClick={() => { onClose(); window.dispatchEvent(new CustomEvent('geopano-pick-map')); }}
-                    style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(11,15,14,.2)", background: "transparent", cursor: "pointer", fontFamily: "'Instrument Sans',sans-serif", fontSize: 13, fontWeight: 500 }}
+                    type="button"
+                    onClick={onPickOnMap}
+                    style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid rgba(11,15,14,.2)", background: "#FFFDF8", cursor: "pointer", fontFamily: "'JetBrains Mono',monospace", fontSize: 11, color: "#0B0F0E", display: "flex", alignItems: "center", gap: 5 }}
                   >
-                    📍 Pick on map
-                  </button>
-                  <button
-                    onClick={() => { if (stopName && lat && lng) setDone("stop"); }}
-                    disabled={!stopName || !lat || !lng}
-                    style={{ padding: "10px 24px", borderRadius: 12, border: "none", background: (!stopName || !lat || !lng) ? "rgba(11,15,14,.1)" : "#C9F24D", color: (!stopName || !lat || !lng) ? "#9AA39E" : "#0B0F0E", fontWeight: 700, fontSize: 15, cursor: (!stopName || !lat || !lng) ? "not-allowed" : "pointer", fontFamily: "inherit", transition: "background .15s" }}
-                  >
-                    Add Stop
+                    <span>📍</span>
+                    <span>Pick on map</span>
                   </button>
                 </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div>
+                    <input value={lat} onChange={(e) => setLat(e.target.value)} placeholder="Latitude (e.g. 24.5281)" style={inp} />
+                  </div>
+                  <div>
+                    <input value={lng} onChange={(e) => setLng(e.target.value)} placeholder="Longitude (e.g. 46.3950)" style={inp} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Geological notes */}
+              <div>
+                <span style={lbl}>DESCRIPTION / FIELD OBSERVATIONS</span>
+                <textarea
+                  value={blurb}
+                  onChange={(e) => setBlurb(e.target.value)}
+                  placeholder="Lithology, stratigraphic unit, jointing, dip/strike notes..."
+                  rows={2}
+                  style={{ ...inp, resize: "vertical" }}
+                />
+              </div>
+
+              {/* Destination Mode: Standalone, New Path, or Existing */}
+              <div style={{ borderTop: "1px solid rgba(11,15,14,.1)", paddingTop: 14 }}>
+                <span style={lbl}>SUBMISSION MODE (NOT FORCED TO EXISTING DATA)</span>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
+                  {[
+                    { id: "standalone", title: "Standalone Stop", desc: "No path" },
+                    { id: "new_path", title: "New Path", desc: "Create path" },
+                    { id: "existing_path", title: "Existing Path", desc: "Link to path" },
+                  ].map((m) => {
+                    const active = destMode === m.id;
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => setDestMode(m.id as typeof destMode)}
+                        style={{ padding: "10px 8px", borderRadius: 10, border: active ? "1.5px solid #0B0F0E" : "1px solid rgba(11,15,14,.15)", background: active ? "rgba(201,242,77,.25)" : "#FFFDF8", cursor: "pointer", textAlign: "center", transition: "all .12s" }}
+                      >
+                        <div style={{ fontSize: 12, fontWeight: 600, color: "#0B0F0E" }}>{m.title}</div>
+                        <div style={{ fontSize: 9, fontFamily: "'JetBrains Mono',monospace", color: "#5A635F", marginTop: 2 }}>{m.desc}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {destMode === "standalone" && (
+                  <div>
+                    <span style={lbl}>LOCATION / OUTCROP AREA</span>
+                    <input
+                      value={newPathCity}
+                      onChange={(e) => setNewPathCity(e.target.value)}
+                      placeholder="e.g. Tuwaiq Escarpment, Saudi Arabia"
+                      style={inp}
+                    />
+                  </div>
+                )}
+
+                {destMode === "new_path" && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    <div>
+                      <span style={lbl}>NEW PATH NAME *</span>
+                      <input
+                        value={newPathName}
+                        onChange={(e) => setNewPathName(e.target.value)}
+                        placeholder="e.g. AlUla Sandstone Traverse"
+                        style={inp}
+                      />
+                    </div>
+                    <div>
+                      <span style={lbl}>REGION / CITY</span>
+                      <input
+                        value={newPathCity}
+                        onChange={(e) => setNewPathCity(e.target.value)}
+                        placeholder="e.g. AlUla, Saudi Arabia"
+                        style={inp}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {destMode === "existing_path" && (
+                  <div>
+                    <span style={lbl}>CHOOSE EXISTING PATH</span>
+                    <select
+                      value={selPathId}
+                      onChange={(e) => setSelPathId(e.target.value)}
+                      style={{ ...inp, appearance: "none" as React.CSSProperties["appearance"] }}
+                    >
+                      {paths.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} ({p.stops.length} stops)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              {/* Submit button */}
+              <div style={{ paddingTop: 4 }}>
+                <button
+                  type="button"
+                  onClick={handleStopSubmit}
+                  disabled={!stopName.trim() || !lat.trim() || !lng.trim() || (destMode === "new_path" && !newPathName.trim())}
+                  style={{
+                    width: "100%", padding: "13px 0", borderRadius: 12, border: "1px solid #0B0F0E",
+                    background: (!stopName.trim() || !lat.trim() || !lng.trim() || (destMode === "new_path" && !newPathName.trim())) ? "rgba(11,15,14,.1)" : "#C9F24D",
+                    color: (!stopName.trim() || !lat.trim() || !lng.trim() || (destMode === "new_path" && !newPathName.trim())) ? "#9AA39E" : "#0B0F0E",
+                    fontWeight: 700, fontSize: 14, cursor: (!stopName.trim() || !lat.trim() || !lng.trim() || (destMode === "new_path" && !newPathName.trim())) ? "not-allowed" : "pointer",
+                    fontFamily: "inherit", transition: "background .15s",
+                  }}
+                >
+                  Submit Stop &amp; 360° Panorama
+                </button>
+              </div>
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div>
-                <span style={lbl}>PATH NAME</span>
+                <span style={lbl}>PATH NAME *</span>
                 <input value={pathName} onChange={(e) => setPathName(e.target.value)} placeholder="e.g. Harrat Kishb Traverse" style={inp} />
               </div>
               <div>
-                <span style={lbl}>REGION / CITY</span>
+                <span style={lbl}>REGION / CITY *</span>
                 <input value={pathCity} onChange={(e) => setPathCity(e.target.value)} placeholder="e.g. Hafir Kishb, Saudi Arabia" style={inp} />
               </div>
               <button
-                onClick={() => { if (pathName && pathCity) setDone("path"); }}
-                disabled={!pathName || !pathCity}
-                style={{ padding: "14px 0", borderRadius: 12, border: "none", background: (!pathName || !pathCity) ? "rgba(11,15,14,.1)" : "#C9F24D", color: (!pathName || !pathCity) ? "#9AA39E" : "#0B0F0E", fontWeight: 700, fontSize: 15, cursor: (!pathName || !pathCity) ? "not-allowed" : "pointer", fontFamily: "inherit", transition: "background .15s" }}
+                type="button"
+                onClick={handlePathSubmit}
+                disabled={!pathName.trim() || !pathCity.trim()}
+                style={{
+                  padding: "14px 0", borderRadius: 12, border: "1px solid #0B0F0E",
+                  background: (!pathName.trim() || !pathCity.trim()) ? "rgba(11,15,14,.1)" : "#C9F24D",
+                  color: (!pathName.trim() || !pathCity.trim()) ? "#9AA39E" : "#0B0F0E",
+                  fontWeight: 700, fontSize: 15, cursor: (!pathName.trim() || !pathCity.trim()) ? "not-allowed" : "pointer",
+                  fontFamily: "inherit", transition: "background .15s", marginTop: 8,
+                }}
               >
-                Create Path
+                Create Empty Path
               </button>
             </div>
           )}
@@ -180,7 +468,15 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
   const layerGroupRef = useRef<ReturnType<typeof window.L.layerGroup> | null>(null);
   const baseLayers = useRef<[unknown, unknown]>([null, null]);
 
-  const [base, setBase] = useState<BaseKey>("canvas");
+  const [paths, setPaths] = useState<Path[]>(() => getAllPaths());
+
+  useEffect(() => {
+    const handler = () => setPaths(getAllPaths());
+    window.addEventListener("geopano-paths-changed", handler);
+    return () => window.removeEventListener("geopano-paths-changed", handler);
+  }, []);
+
+  const [base, setBase] = useState<BaseKey>("imagery");
   const [layersOpen, setLayersOpen] = useState(false);
 
   const initP = selectedPathId ? paths.findIndex((p) => p.id === selectedPathId) : 0;
@@ -192,6 +488,7 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
   const [panel, setPanel] = useState<"paths" | "stop" | "annotations" | "none">("paths");
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [pickingMode, setPickingMode] = useState(false);
+  const [pickedCoords, setPickedCoords] = useState<{ lat: string; lng: string } | null>(null);
   const [geoJsonData, setGeoJsonData] = useState<any[]>([]);
 
   // search & view-more per popover
@@ -304,7 +601,7 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
     const lg = L.layerGroup().addTo(map);
     mapRef.current = map;
     layerGroupRef.current = lg;
-    applyBase("canvas", map);
+    applyBase("imagery", map);
     map.on("mousemove", (e: { latlng: { lat: number; lng: number } }) => setMouseCoords({ lat: e.latlng.lat, lng: e.latlng.lng }));
     map.on("mouseout", () => setMouseCoords(null));
     map.on("zoomend", () => { setZoom(map.getZoom()); drawMap(map, lg, pathIdx, stopIdx, query); });
@@ -330,8 +627,10 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
     map.on('click', (e: { latlng: { lat: number; lng: number } }) => {
       if (pickingMode) {
         setPickingMode(false);
-        // Dispatch event back to modal (in a real app we'd lift state, but we'll just alert for now)
-        alert(`Picked coordinates: ${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`);
+        setPickedCoords({
+          lat: e.latlng.lat.toFixed(5),
+          lng: e.latlng.lng.toFixed(5),
+        });
         setAddModalOpen(true);
       }
     });
@@ -360,6 +659,16 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
       } else if (p.stops.length > 1) {
         mapRef.current.flyToBounds(p.stops.map((s) => s.ll as [number, number]), { padding: [100, 100], maxZoom: 15, duration: 1.1 } as Parameters<typeof mapRef.current.flyToBounds>[1]);
       }
+    }
+  }
+
+  function resetToAllStops() {
+    if (!mapRef.current) return;
+    const allStops = paths.flatMap((p) => p.stops.map((s) => s.ll as [number, number]));
+    if (allStops.length > 0) {
+      mapRef.current.flyToBounds(allStops, { padding: [80, 80], maxZoom: 14, duration: 1.2 } as Parameters<typeof mapRef.current.flyToBounds>[1]);
+    } else {
+      mapRef.current.setView([25, 42], 5);
     }
   }
 
@@ -401,12 +710,48 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
       <div ref={mapDivRef} style={{ position: "absolute", inset: 0, background: "#E4E0D6" }} />
 
       {/* ── Add Stop/Path modal ─────────────────────────────────────────── */}
-      {addModalOpen && <AddModal pathIdx={pathIdx} onClose={() => setAddModalOpen(false)} />}
+      {addModalOpen && (
+        <AddModal
+          paths={paths}
+          pathIdx={pathIdx}
+          initialLat={pickedCoords?.lat}
+          initialLng={pickedCoords?.lng}
+          onClose={() => setAddModalOpen(false)}
+          onPickOnMap={() => {
+            setAddModalOpen(false);
+            setPickingMode(true);
+          }}
+          onCreated={(newPath, newStopId) => {
+            const all = getAllPaths();
+            setPaths(all);
+            const pi = all.findIndex((p) => p.id === newPath.id);
+            if (pi >= 0) {
+              setPathIdx(pi);
+              if (newStopId) {
+                const si = newPath.stops.findIndex((s) => s.id === newStopId);
+                setStopIdx(si >= 0 ? si : 0);
+                setPanel("stop");
+                const stop = newPath.stops.find((s) => s.id === newStopId);
+                if (stop && mapRef.current) {
+                  mapRef.current.flyTo(stop.ll as [number, number], 14, { duration: 1.1 });
+                }
+              } else {
+                flyToPath(pi);
+              }
+            }
+          }}
+          onNavTo360={(pId, sId) => {
+            onSelectStop(pId, sId);
+            window.location.hash = `#/stop/${pId}/${sId}`;
+          }}
+        />
+      )}
 
       {/* Picking overlay */}
       {pickingMode && (
-        <div style={{ position: "absolute", top: 24, left: "50%", transform: "translateX(-50%)", zIndex: 1000, background: "#0B0F0E", color: "#C9F24D", padding: "12px 24px", borderRadius: 999, fontFamily: "'Instrument Sans',sans-serif", fontWeight: 600, boxShadow: "0 8px 32px rgba(11,15,14,.5)", pointerEvents: "none" }}>
-          Click on the map to set coordinates
+        <div style={{ position: "absolute", top: 24, left: "50%", transform: "translateX(-50%)", zIndex: 1000, background: "#0B0F0E", color: "#C9F24D", padding: "12px 24px", borderRadius: 999, fontFamily: "'Instrument Sans',sans-serif", fontWeight: 600, boxShadow: "0 8px 32px rgba(11,15,14,.5)", pointerEvents: "auto", display: "flex", alignItems: "center", gap: 14 }}>
+          <span>📍 Click on the map to set coordinates</span>
+          <button onClick={() => { setPickingMode(false); setAddModalOpen(true); }} style={{ background: "rgba(255,253,248,.2)", border: "none", color: "#FFFDF8", padding: "4px 10px", borderRadius: 99, cursor: "pointer", fontSize: 12 }}>Cancel</button>
         </div>
       )}
 
@@ -626,15 +971,15 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
         {/* ── Zoom controls (below layers) ─────────────────────────────────── */}
         <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
           {[{ label: "+", action: () => mapRef.current?.zoomIn() }, { label: "−", action: () => mapRef.current?.zoomOut() }].map(({ label, action }) => (
-            <button key={label} onClick={action} style={{ width: 40, height: 40, borderRadius: 12, background: "#0B0F0E", border: "1px solid rgba(255,253,248,.15)", fontSize: 17, cursor: "pointer", boxShadow: "0 8px 20px -14px rgba(11,15,14,.7)", transition: "background .2s, border .2s", color: "#FFFDF8", display: "grid", placeItems: "center" }}
+            <button key={label} onClick={action} style={{ width: 40, height: 40, borderRadius: 12, background: "#FFFDF8", border: "1px solid rgba(11,15,14,.2)", fontSize: 17, fontWeight: 500, cursor: "pointer", boxShadow: "0 8px 20px -14px rgba(11,15,14,.7)", transition: "background .2s, border .2s, color .2s", color: "#3E4744", display: "grid", placeItems: "center" }}
               onMouseEnter={(e) => { e.currentTarget.style.background = "#C9F24D"; e.currentTarget.style.color = "#0B0F0E"; e.currentTarget.style.borderColor = "#0B0F0E"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "#0B0F0E"; e.currentTarget.style.color = "#FFFDF8"; e.currentTarget.style.borderColor = "rgba(255,253,248,.15)"; }}>
+              onMouseLeave={(e) => { e.currentTarget.style.background = "#FFFDF8"; e.currentTarget.style.color = "#3E4744"; e.currentTarget.style.borderColor = "rgba(11,15,14,.2)"; }}>
               {label}
             </button>
           ))}
-          <button onClick={() => mapRef.current?.fitWorld()} aria-label="Reset view" style={{ width: 40, height: 40, borderRadius: 12, background: "#0B0F0E", border: "1px solid rgba(255,253,248,.15)", cursor: "pointer", display: "grid", placeItems: "center", boxShadow: "0 8px 20px -14px rgba(11,15,14,.7)", transition: "background .2s, border .2s", color: "#FFFDF8" }}
+          <button onClick={resetToAllStops} aria-label="Reset view to all collected stops" title="Reset view to all collected stops" style={{ width: 40, height: 40, borderRadius: 12, background: "#FFFDF8", border: "1px solid rgba(11,15,14,.2)", cursor: "pointer", display: "grid", placeItems: "center", boxShadow: "0 8px 20px -14px rgba(11,15,14,.7)", transition: "background .2s, border .2s, color .2s", color: "#3E4744" }}
             onMouseEnter={(e) => { e.currentTarget.style.background = "#C9F24D"; e.currentTarget.style.color = "#0B0F0E"; e.currentTarget.style.borderColor = "#0B0F0E"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "#0B0F0E"; e.currentTarget.style.color = "#FFFDF8"; e.currentTarget.style.borderColor = "rgba(255,253,248,.15)"; }}>
+            onMouseLeave={(e) => { e.currentTarget.style.background = "#FFFDF8"; e.currentTarget.style.color = "#3E4744"; e.currentTarget.style.borderColor = "rgba(11,15,14,.2)"; }}>
             <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M3 7V4.6A1.6 1.6 0 014.6 3H7M13 3h2.4A1.6 1.6 0 0117 4.6V7M17 13v2.4a1.6 1.6 0 01-1.6 1.6H13M7 17H4.6A1.6 1.6 0 013 15.4V13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /><circle cx="10" cy="10" r="1.7" fill="currentColor" /></svg>
           </button>
         </div>

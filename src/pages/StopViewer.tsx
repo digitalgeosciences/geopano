@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import db from "../data/db.json";
-import { Path, View } from "../types";
+import { View } from "../types";
+import { getAllPaths, getResolvedPanorama } from "../data/pathsData";
 
-const paths = db.paths as unknown as Path[];
+const paths = getAllPaths();
 // ── types ────────────────────────────────────────────────────────────────────
 
 interface SpherePoint { yaw: number; pitch: number; }
@@ -196,7 +196,7 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
   const curPath = paths.find((p) => p.id === pathId) || paths[0];
   const stopIdx = curPath.stops.findIndex((s) => s.id === stopId);
   const curStop = curPath.stops[stopIdx] || curPath.stops[0];
-  const panoramaUrl = curStop.panorama || "/uploads/sp00009.jpg";
+  const panoramaUrl = getResolvedPanorama(curStop);
   // Derive preview URL from panorama URL
   const previewUrl = panoramaUrl.replace('/uploads/', '/uploads/preview/');
 

@@ -35,6 +35,7 @@ export default function Landing({ onNav }: Props) {
     const viewer = window.pannellum.viewer(viewerRef.current, {
       type: "equirectangular",
       panorama: heroPath.panorama,
+      preview: heroPath.panorama.replace('/uploads/', '/uploads/preview/'),
       autoLoad: true,
       showControls: false,
       showZoomCtrl: false,

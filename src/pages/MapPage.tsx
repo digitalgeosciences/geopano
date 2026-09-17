@@ -8,6 +8,8 @@ const paths = db.paths as unknown as Path[];
 interface Props {
   onNav: (v: View) => void;
   onSelectStop: (pathId: string, stopId: string) => void;
+  selectedPathId?: string;
+  selectedStopId?: string;
 }
 
 type BaseKey = "canvas" | "imagery" | "topo";
@@ -129,13 +131,21 @@ function AddModal({ pathIdx, onClose }: { pathIdx: number; onClose: () => void }
                   {paths.map((p, i) => <option key={p.id} value={i}>{p.name}</option>)}
                 </select>
               </div>
-              <button
-                onClick={() => { if (stopName && lat && lng) setDone("stop"); }}
-                disabled={!stopName || !lat || !lng}
-                style={{ padding: "14px 0", borderRadius: 12, border: "none", background: (!stopName || !lat || !lng) ? "rgba(11,15,14,.1)" : "#C9F24D", color: (!stopName || !lat || !lng) ? "#9AA39E" : "#0B0F0E", fontWeight: 700, fontSize: 15, cursor: (!stopName || !lat || !lng) ? "not-allowed" : "pointer", fontFamily: "inherit", transition: "background .15s" }}
-              >
-                Add Stop
-              </button>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                  <button
+                    onClick={() => { onClose(); window.dispatchEvent(new CustomEvent('geopano-pick-map')); }}
+                    style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(11,15,14,.2)", background: "transparent", cursor: "pointer", fontFamily: "'Instrument Sans',sans-serif", fontSize: 13, fontWeight: 500 }}
+                  >
+                    📍 Pick on map
+                  </button>
+                  <button
+                    onClick={() => { if (stopName && lat && lng) setDone("stop"); }}
+                    disabled={!stopName || !lat || !lng}
+                    style={{ padding: "10px 24px", borderRadius: 12, border: "none", background: (!stopName || !lat || !lng) ? "rgba(11,15,14,.1)" : "#C9F24D", color: (!stopName || !lat || !lng) ? "#9AA39E" : "#0B0F0E", fontWeight: 700, fontSize: 15, cursor: (!stopName || !lat || !lng) ? "not-allowed" : "pointer", fontFamily: "inherit", transition: "background .15s" }}
+                  >
+                    Add Stop
+                  </button>
+                </div>
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -163,7 +173,7 @@ function AddModal({ pathIdx, onClose }: { pathIdx: number; onClose: () => void }
 }
 
 // ── main component ────────────────────────────────────────────────────────────
-export default function MapPage({ onNav, onSelectStop }: Props) {
+export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedStopId }: Props) {
   const isMobile = useIsMobile(768);
   const mapDivRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<ReturnType<typeof window.L.map> | null>(null);
@@ -172,10 +182,17 @@ export default function MapPage({ onNav, onSelectStop }: Props) {
 
   const [base, setBase] = useState<BaseKey>("canvas");
   const [layersOpen, setLayersOpen] = useState(false);
-  const [pathIdx, setPathIdx] = useState(0);
-  const [stopIdx, setStopIdx] = useState(0);
-  const [panel, setPanel] = useState<"paths" | "stop" | "annotations" | "none">("none");
+
+  const initP = selectedPathId ? paths.findIndex((p) => p.id === selectedPathId) : 0;
+  const initPathIdx = initP >= 0 ? initP : 0;
+  const [pathIdx, setPathIdx] = useState(initPathIdx);
+
+  const initS = selectedStopId && paths[initPathIdx] ? paths[initPathIdx].stops.findIndex((s) => s.id === selectedStopId) : 0;
+  const [stopIdx, setStopIdx] = useState(initS >= 0 ? initS : 0);
+  const [panel, setPanel] = useState<"paths" | "stop" | "annotations" | "none">("paths");
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [pickingMode, setPickingMode] = useState(false);
+  const [geoJsonData, setGeoJsonData] = useState<any[]>([]);
 
   // search & view-more per popover
   const [pathSearch, setPathSearch] = useState("");
@@ -189,8 +206,8 @@ export default function MapPage({ onNav, onSelectStop }: Props) {
   const [mouseCoords, setMouseCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [zoom, setZoom] = useState(4);
 
-  const curPath = paths[pathIdx];
-  const curStop = curPath.stops[Math.min(stopIdx, curPath.stops.length - 1)];
+  const curPath = paths[pathIdx] || paths[0];
+  const curStop = curPath.stops[Math.min(stopIdx, curPath.stops.length - 1)] || curPath.stops[0];
 
   // popover shared style
   const popoverStyle = (topOffset = 0): React.CSSProperties =>
@@ -214,22 +231,67 @@ export default function MapPage({ onNav, onSelectStop }: Props) {
   function drawMap(map: ReturnType<typeof window.L.map>, lg: ReturnType<typeof window.L.layerGroup>, selPath: number, selStop: number, q: string) {
     const L = window.L;
     lg.clearLayers();
+
+    // Draw GeoJSON
+    geoJsonData.forEach(geo => {
+      L.geoJSON(geo, {
+        style: { color: "#FF9F1C", weight: 3 },
+        pointToLayer: (feature: any, latlng: any) => L.circleMarker(latlng, { radius: 6, fillColor: "#FF9F1C", color: "#0B0F0E", weight: 2, fillOpacity: 0.8 }),
+        onEachFeature: (feature: any, layer: any) => {
+          if (feature.properties && feature.properties.name) {
+            layer.bindPopup(feature.properties.name);
+          }
+        }
+      }).addTo(lg);
+    });
+
     const lq = q.trim().toLowerCase();
+    const z = map.getZoom();
+
     paths.forEach((p, pi) => {
       const hit = !lq || (p.name + " " + p.city + " " + p.stops.map((s) => s.title).join(" ")).toLowerCase().includes(lq);
       if (!hit) return;
       const isSel = pi === selPath;
-      L.polyline(p.stops.map((s) => s.ll as [number, number]), { color: "#0B0F0E", weight: isSel ? 2 : 1.2, opacity: isSel ? 1 : 0.35, dashArray: "5 5" }).addTo(lg);
-      const z = map.getZoom();
-      const size = z >= 11 ? 14 : 9;
+
+      if (p.stops.length > 1) {
+        L.polyline(p.stops.map((s) => s.ll as [number, number]), {
+          color: isSel ? "#0B0F0E" : "#5A635F",
+          weight: isSel ? 2.5 : 1.5,
+          opacity: isSel ? 0.9 : 0.4,
+          dashArray: "6 6",
+        }).addTo(lg);
+      }
+
       p.stops.forEach((s, si) => {
         const active = isSel && si === selStop;
         const visited = isSel && si < selStop;
+        const baseSize = z >= 12 ? 22 : z >= 8 ? 17 : 14;
+        const markerSize = active ? baseSize + 8 : baseSize;
         const cls = "gp-pin" + (active ? " is-active" : visited ? " is-visited" : "");
-        L.marker(s.ll as [number, number], {
-          icon: L.divIcon({ className: "", iconSize: [size, size], iconAnchor: [size / 2, size / 2], html: `<div class="${cls}" style="width:${size}px;height:${size}px;opacity:${isSel ? 1 : 0.62}"></div>` }),
+
+        const marker = L.marker(s.ll as [number, number], {
+          icon: L.divIcon({
+            className: "gp-pin-wrapper",
+            iconSize: [markerSize, markerSize],
+            iconAnchor: [markerSize / 2, markerSize / 2],
+            html: `<div class="${cls}" style="width:${markerSize}px;height:${markerSize}px;opacity:${isSel ? 1 : 0.75}"></div>`,
+          }),
           title: s.title,
-        }).addTo(lg).on("click", () => { setPathIdx(pi); setStopIdx(si); setPanel("stop"); });
+          zIndexOffset: active ? 1000 : isSel ? 500 : 0,
+        });
+
+        marker.bindTooltip(`<strong>${s.title}</strong><br/><span style="font-size:10px;opacity:0.8">${p.name} · ${p.city}</span>`, {
+          direction: "top",
+          offset: [0, -markerSize / 2],
+          className: "gp-map-tooltip",
+        });
+
+        marker.addTo(lg).on("click", () => {
+          setPathIdx(pi);
+          setStopIdx(si);
+          setPanel("stop");
+          map.flyTo(s.ll as [number, number], Math.max(map.getZoom(), 14), { duration: 0.8 });
+        });
       });
     });
   }
@@ -238,7 +300,7 @@ export default function MapPage({ onNav, onSelectStop }: Props) {
     if (!mapDivRef.current || !window.L) return;
     const L = window.L;
     if (mapRef.current) return;
-    const map = L.map(mapDivRef.current, { zoomControl: false, attributionControl: true, worldCopyJump: true }).setView([25, 30], 4);
+    const map = L.map(mapDivRef.current, { zoomControl: false, attributionControl: true, worldCopyJump: true });
     const lg = L.layerGroup().addTo(map);
     mapRef.current = map;
     layerGroupRef.current = lg;
@@ -246,22 +308,58 @@ export default function MapPage({ onNav, onSelectStop }: Props) {
     map.on("mousemove", (e: { latlng: { lat: number; lng: number } }) => setMouseCoords({ lat: e.latlng.lat, lng: e.latlng.lng }));
     map.on("mouseout", () => setMouseCoords(null));
     map.on("zoomend", () => { setZoom(map.getZoom()); drawMap(map, lg, pathIdx, stopIdx, query); });
+
+    // Center on initial path/stop
+    const currentPath = paths[initPathIdx];
+    if (currentPath && currentPath.stops.length > 0) {
+      if (currentPath.stops.length === 1) {
+        map.setView(currentPath.stops[0].ll as [number, number], 13);
+      } else {
+        map.fitBounds(currentPath.stops.map((s) => s.ll as [number, number]), { padding: [100, 100], maxZoom: 15 });
+      }
+    } else {
+      map.setView([25, 42], 5);
+    }
+
     drawMap(map, lg, pathIdx, stopIdx, query);
-    return () => { map.remove(); mapRef.current = null; layerGroupRef.current = null; };
+
+    // Event listeners for coordinate picking
+    const handlePickMap = () => { setPickingMode(true); };
+    window.addEventListener('geopano-pick-map', handlePickMap);
+
+    map.on('click', (e: { latlng: { lat: number; lng: number } }) => {
+      if (pickingMode) {
+        setPickingMode(false);
+        // Dispatch event back to modal (in a real app we'd lift state, but we'll just alert for now)
+        alert(`Picked coordinates: ${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`);
+        setAddModalOpen(true);
+      }
+    });
+
+    return () => { 
+      map.remove(); mapRef.current = null; layerGroupRef.current = null; 
+      window.removeEventListener('geopano-pick-map', handlePickMap);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [pickingMode]);
 
   useEffect(() => {
     if (mapRef.current && layerGroupRef.current) drawMap(mapRef.current, layerGroupRef.current, pathIdx, stopIdx, query);
-  }, [pathIdx, stopIdx, query]);
+  }, [pathIdx, stopIdx, query, geoJsonData]);
 
   useEffect(() => { if (mapRef.current) applyBase(base, mapRef.current); }, [base]);
 
   function flyToPath(pi: number) {
-    setPathIdx(pi); setStopIdx(0); setPanel("paths");
+    setPathIdx(pi);
+    setStopIdx(0);
+    setPanel("stop");
     if (mapRef.current) {
       const p = paths[pi];
-      mapRef.current.flyToBounds(p.stops.map((s) => s.ll as [number, number]), { padding: [140, 140], maxZoom: 15, duration: 1.1 } as Parameters<typeof mapRef.current.flyToBounds>[1]);
+      if (p.stops.length === 1) {
+        mapRef.current.flyTo(p.stops[0].ll as [number, number], 14, { duration: 1.1 });
+      } else if (p.stops.length > 1) {
+        mapRef.current.flyToBounds(p.stops.map((s) => s.ll as [number, number]), { padding: [100, 100], maxZoom: 15, duration: 1.1 } as Parameters<typeof mapRef.current.flyToBounds>[1]);
+      }
     }
   }
 
@@ -304,6 +402,13 @@ export default function MapPage({ onNav, onSelectStop }: Props) {
 
       {/* ── Add Stop/Path modal ─────────────────────────────────────────── */}
       {addModalOpen && <AddModal pathIdx={pathIdx} onClose={() => setAddModalOpen(false)} />}
+
+      {/* Picking overlay */}
+      {pickingMode && (
+        <div style={{ position: "absolute", top: 24, left: "50%", transform: "translateX(-50%)", zIndex: 1000, background: "#0B0F0E", color: "#C9F24D", padding: "12px 24px", borderRadius: 999, fontFamily: "'Instrument Sans',sans-serif", fontWeight: 600, boxShadow: "0 8px 32px rgba(11,15,14,.5)", pointerEvents: "none" }}>
+          Click on the map to set coordinates
+        </div>
+      )}
 
       {/* ── Left rail ──────────────────────────────────────────────────── */}
       <div style={{ position: "absolute", left: "clamp(12px,2vw,24px)", top: "clamp(12px,2vw,24px)", zIndex: 500, display: "flex", flexDirection: "column", gap: 8, pointerEvents: "none" }}>
@@ -357,42 +462,63 @@ export default function MapPage({ onNav, onSelectStop }: Props) {
                     </button>
                   )}
                 </div>
-                {/* Selected stop section */}
-                {panel === "stop" && (
-                  <div style={{ flexShrink: 0, borderTop: "1px solid rgba(11,15,14,.1)", background: "rgba(11,15,14,.02)" }}>
-                    <div style={{ padding: "10px 14px 4px", fontFamily: "'JetBrains Mono',monospace", fontSize: 9, letterSpacing: ".16em", color: "#5A635F" }}>
-                      STOPS IN {curPath.name.toUpperCase()}
-                    </div>
-                    {visibleStops.map((s, si) => {
-                      const active = si === stopIdx;
-                      return (
-                        <button key={s.id} onClick={() => setStopIdx(si)}
-                          style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", border: "none", borderBottom: "1px solid rgba(11,15,14,.05)", cursor: "pointer", textAlign: "left", background: active ? "rgba(201,242,77,.22)" : "transparent", fontFamily: "inherit", transition: "background .12s" }}>
-                          <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 9, color: "#9AA39E", flexShrink: 0, width: 18 }}>{(si + 1).toString().padStart(2, "0")}</span>
-                          <span style={{ flex: 1, fontSize: 13, fontWeight: active ? 600 : 400, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.title}</span>
-                          {active && <span style={{ fontSize: 10, color: "#14504A", flexShrink: 0 }}>●</span>}
-                        </button>
-                      );
-                    })}
-                    {pathStops.length > 5 && (
-                      <button onClick={() => setStopsExpanded((x) => !x)}
-                        style={{ width: "100%", padding: "8px 14px", border: "none", cursor: "pointer", textAlign: "left", background: "transparent", fontFamily: "'JetBrains Mono',monospace", fontSize: 9, letterSpacing: ".14em", color: "#14504A" }}>
-                        {stopsExpanded ? "SHOW LESS ↑" : `VIEW MORE (${pathStops.length - 5}) ↓`}
+              </div>
+            )}
+
+            {/* Stops popup — separate card */}
+            {panel === "stop" && (
+              <div style={{ ...(isMobile
+                ? { position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 601, borderRadius: "16px 16px 0 0", maxHeight: "45vh", overflow: "hidden", display: "flex", flexDirection: "column", background: "rgba(255,253,248,.99)", border: "1px solid rgba(11,15,14,.14)", backdropFilter: "blur(16px)", boxShadow: "0 -8px 32px -8px rgba(11,15,14,.3)" }
+                : { position: "absolute", left: 52, top: 360, width: 300, borderRadius: 16, overflow: "hidden", background: "rgba(255,253,248,.97)", border: "1px solid rgba(11,15,14,.14)", backdropFilter: "blur(12px)", boxShadow: "0 12px 32px -16px rgba(11,15,14,.7)" }
+              ), display: "flex", flexDirection: "column" }}>
+                <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px 8px" }}>
+                  <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 9, letterSpacing: ".16em", color: "#5A635F" }}>
+                    STOPS IN {curPath.name.toUpperCase()}
+                  </span>
+                  <button onClick={() => setPanel("paths")} style={closeBtn}><CloseX /></button>
+                </div>
+                <div style={{ flex: 1, overflowY: "auto" }}>
+                  {visibleStops.map((s, si) => {
+                    const active = si === stopIdx;
+                    return (
+                      <button key={s.id} onClick={() => {
+                        setStopIdx(si);
+                        if (mapRef.current) {
+                          mapRef.current.flyTo(s.ll as [number, number], Math.max(mapRef.current.getZoom(), 14), { duration: 0.8 });
+                        }
+                      }}
+                        style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", border: "none", borderBottom: "1px solid rgba(11,15,14,.05)", cursor: "pointer", textAlign: "left", background: active ? "rgba(201,242,77,.22)" : "transparent", fontFamily: "inherit", transition: "background .12s" }}>
+                        <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 9, color: "#9AA39E", flexShrink: 0, width: 18 }}>{(si + 1).toString().padStart(2, "0")}</span>
+                        <span style={{ flex: 1, fontSize: 13, fontWeight: active ? 600 : 400, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.title}</span>
+                        {active && <span style={{ fontSize: 10, color: "#14504A", flexShrink: 0 }}>●</span>}
                       </button>
-                    )}
-                    {/* CTA row */}
-                    <div style={{ padding: "10px 14px 14px", display: "flex", gap: 7 }}>
-                      <button onClick={() => { onSelectStop(curPath.id, curStop.id); onNav("stop"); }}
-                        style={{ flex: 1, padding: "9px 0", borderRadius: 999, background: "#C9F24D", border: "1px solid #0B0F0E", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
-                        View 360° ↗
-                      </button>
-                      <button onClick={() => setStopIdx((i) => Math.min(i + 1, curPath.stops.length - 1))} disabled={stopIdx >= curPath.stops.length - 1}
-                        style={{ padding: "9px 12px", borderRadius: 999, background: "transparent", border: "1px solid rgba(11,15,14,.22)", fontSize: 12, cursor: "pointer", fontFamily: "inherit", opacity: stopIdx >= curPath.stops.length - 1 ? 0.35 : 1 }}>
-                        Next →
-                      </button>
-                    </div>
-                  </div>
-                )}
+                    );
+                  })}
+                  {pathStops.length > 5 && (
+                    <button onClick={() => setStopsExpanded((x) => !x)}
+                      style={{ width: "100%", padding: "8px 14px", border: "none", cursor: "pointer", textAlign: "left", background: "transparent", fontFamily: "'JetBrains Mono',monospace", fontSize: 9, letterSpacing: ".14em", color: "#14504A" }}>
+                      {stopsExpanded ? "SHOW LESS ↑" : `VIEW MORE (${pathStops.length - 5}) ↓`}
+                    </button>
+                  )}
+                </div>
+                {/* CTA row */}
+                <div style={{ flexShrink: 0, padding: "10px 14px 14px", display: "flex", gap: 7, borderTop: "1px solid rgba(11,15,14,.08)" }}>
+                  <button onClick={() => { onSelectStop(curPath.id, curStop.id); onNav("stop"); }}
+                    style={{ flex: 1, padding: "9px 0", borderRadius: 999, background: "#C9F24D", border: "1px solid #0B0F0E", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
+                    View 360° ↗
+                  </button>
+                  <button onClick={() => {
+                    const nextIdx = Math.min(stopIdx + 1, curPath.stops.length - 1);
+                    setStopIdx(nextIdx);
+                    const nextStop = curPath.stops[nextIdx];
+                    if (nextStop && mapRef.current) {
+                      mapRef.current.flyTo(nextStop.ll as [number, number], Math.max(mapRef.current.getZoom(), 14), { duration: 0.8 });
+                    }
+                  }} disabled={stopIdx >= curPath.stops.length - 1}
+                    style={{ padding: "9px 12px", borderRadius: 999, background: "transparent", border: "1px solid rgba(11,15,14,.22)", fontSize: 12, cursor: "pointer", fontFamily: "inherit", opacity: stopIdx >= curPath.stops.length - 1 ? 0.35 : 1 }}>
+                    Next →
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -448,15 +574,35 @@ export default function MapPage({ onNav, onSelectStop }: Props) {
 
           {/* ── Upload GeoJSON icon ── */}
           <button
-            onClick={() => { const inp = document.createElement("input"); inp.type = "file"; inp.accept = ".geojson,application/geo+json,application/json"; inp.onchange = () => { if (inp.files?.[0]) alert("GeoJSON uploaded: " + inp.files[0].name); }; inp.click(); }}
-            aria-label="Upload GeoJSON" title="Upload GeoJSON" style={railBtn(false)}
+            onClick={() => { 
+              const inp = document.createElement("input"); 
+              inp.type = "file"; 
+              inp.accept = ".geojson,application/geo+json,application/json"; 
+              inp.onchange = () => { 
+                if (inp.files?.[0]) {
+                  const reader = new FileReader();
+                  reader.onload = (e) => {
+                    try {
+                      const geo = JSON.parse(e.target?.result as string);
+                      setGeoJsonData(prev => [...prev, geo]);
+                      alert("GeoJSON imported successfully");
+                    } catch {
+                      alert("Invalid GeoJSON file");
+                    }
+                  };
+                  reader.readAsText(inp.files[0]);
+                } 
+              }; 
+              inp.click(); 
+            }}
+            aria-label="Upload GeoJSON" title="Upload GeoJSON" style={railBtn(geoJsonData.length > 0)}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 14V4M8 8l4-4 4 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /><path d="M4 17v1a2 2 0 002 2h12a2 2 0 002-2v-1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>
           </button>
         </div>
       </div>
 
-      {/* ── Right: layers ──────────────────────────────────────────────────── */}
+      {/* ── Right: layers + zoom controls ──────────────────────────────────── */}
       <div style={{ position: "absolute", right: "clamp(12px,2vw,24px)", top: "clamp(12px,2vw,24px)", zIndex: 500, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
         <button onClick={() => setLayersOpen((o) => !o)} aria-label="Map layers" style={{ width: 40, height: 40, borderRadius: 12, display: "grid", placeItems: "center", cursor: "pointer", boxShadow: "0 8px 20px -14px rgba(11,15,14,.7)", border: layersOpen ? "1px solid #0B0F0E" : "1px solid rgba(11,15,14,.2)", background: layersOpen ? "#C9F24D" : "#FFFDF8", color: layersOpen ? "#0B0F0E" : "#3E4744", transition: "background .2s, border .2s" }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 3.6l8.4 4.3-8.4 4.3-8.4-4.3 8.4-4.3z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /><path d="M4.6 12.4l7.4 3.8 7.4-3.8M4.6 16.4l7.4 3.8 7.4-3.8" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /></svg>
@@ -476,55 +622,51 @@ export default function MapPage({ onNav, onSelectStop }: Props) {
             ))}
           </div>
         )}
+
+        {/* ── Zoom controls (below layers) ─────────────────────────────────── */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+          {[{ label: "+", action: () => mapRef.current?.zoomIn() }, { label: "−", action: () => mapRef.current?.zoomOut() }].map(({ label, action }) => (
+            <button key={label} onClick={action} style={{ width: 40, height: 40, borderRadius: 12, background: "#0B0F0E", border: "1px solid rgba(255,253,248,.15)", fontSize: 17, cursor: "pointer", boxShadow: "0 8px 20px -14px rgba(11,15,14,.7)", transition: "background .2s, border .2s", color: "#FFFDF8", display: "grid", placeItems: "center" }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "#C9F24D"; e.currentTarget.style.color = "#0B0F0E"; e.currentTarget.style.borderColor = "#0B0F0E"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "#0B0F0E"; e.currentTarget.style.color = "#FFFDF8"; e.currentTarget.style.borderColor = "rgba(255,253,248,.15)"; }}>
+              {label}
+            </button>
+          ))}
+          <button onClick={() => mapRef.current?.fitWorld()} aria-label="Reset view" style={{ width: 40, height: 40, borderRadius: 12, background: "#0B0F0E", border: "1px solid rgba(255,253,248,.15)", cursor: "pointer", display: "grid", placeItems: "center", boxShadow: "0 8px 20px -14px rgba(11,15,14,.7)", transition: "background .2s, border .2s", color: "#FFFDF8" }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "#C9F24D"; e.currentTarget.style.color = "#0B0F0E"; e.currentTarget.style.borderColor = "#0B0F0E"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "#0B0F0E"; e.currentTarget.style.color = "#FFFDF8"; e.currentTarget.style.borderColor = "rgba(255,253,248,.15)"; }}>
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M3 7V4.6A1.6 1.6 0 014.6 3H7M13 3h2.4A1.6 1.6 0 0117 4.6V7M17 13v2.4a1.6 1.6 0 01-1.6 1.6H13M7 17H4.6A1.6 1.6 0 013 15.4V13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /><circle cx="10" cy="10" r="1.7" fill="currentColor" /></svg>
+          </button>
+        </div>
       </div>
 
-      {/* ── Scale bar + coordinates ──────────────────────────────────────── */}
+      {/* ── Scale bar + coordinates (dark theme, attached to map) ────────── */}
       {(() => {
         const scaleLat = mouseCoords?.lat ?? 25;
         const { barPx, label } = computeScale(zoom, scaleLat);
         const fmtDeg = (val: number, pos: string, neg: string) => `${Math.abs(val).toFixed(4)}° ${val >= 0 ? pos : neg}`;
+        const coordText = mouseCoords ? `${fmtDeg(mouseCoords.lat, "N", "S")}, ${fmtDeg(mouseCoords.lng, "E", "W")}` : "";
         return (
-          <div style={{ position: "absolute", left: "clamp(12px,2vw,24px)", bottom: "clamp(12px,2vw,24px)", zIndex: isMobile ? 499 : 500, display: "flex", alignItems: "center", gap: 18, padding: "9px 16px", borderRadius: 12, background: "rgba(255,253,248,.95)", border: "1px solid rgba(11,15,14,.16)", backdropFilter: "blur(10px)", boxShadow: "0 8px 20px -14px rgba(11,15,14,.55)", pointerEvents: "none" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-start" }}>
+          <div style={{ position: "absolute", left: "clamp(12px,2vw,24px)", bottom: "clamp(12px,2vw,24px)", zIndex: isMobile ? 499 : 500, display: "flex", alignItems: "center", gap: 12, padding: "9px 16px", borderRadius: 999, background: "rgba(11,15,14,.72)", backdropFilter: "blur(8px)", pointerEvents: "auto" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ position: "relative", height: 10, width: barPx, flexShrink: 0 }}>
-                <div style={{ position: "absolute", left: 0, top: 0, width: 1.5, height: 10, background: "#0B0F0E", borderRadius: 1 }} />
-                <div style={{ position: "absolute", left: barPx / 2 - 0.75, top: 3, width: 1.5, height: 7, background: "#0B0F0E", borderRadius: 1 }} />
-                <div style={{ position: "absolute", right: 0, top: 0, width: 1.5, height: 10, background: "#0B0F0E", borderRadius: 1 }} />
-                <div style={{ position: "absolute", left: 0, top: 4, height: 3, width: barPx / 2, background: "#0B0F0E" }} />
-                <div style={{ position: "absolute", left: barPx / 2, top: 4, height: 3, width: barPx / 2, background: "rgba(11,15,14,.18)" }} />
+                <div style={{ position: "absolute", left: 0, top: 0, width: 1.5, height: 10, background: "#FFFDF8", borderRadius: 1 }} />
+                <div style={{ position: "absolute", left: barPx / 2 - 0.75, top: 3, width: 1.5, height: 7, background: "#FFFDF8", borderRadius: 1 }} />
+                <div style={{ position: "absolute", right: 0, top: 0, width: 1.5, height: 10, background: "#FFFDF8", borderRadius: 1 }} />
+                <div style={{ position: "absolute", left: 0, top: 4, height: 3, width: barPx / 2, background: "#FFFDF8" }} />
+                <div style={{ position: "absolute", left: barPx / 2, top: 4, height: 3, width: barPx / 2, background: "rgba(255,253,248,.3)" }} />
               </div>
-              <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 9, letterSpacing: ".14em", color: "#5A635F" }}>{label}</span>
+              <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10, letterSpacing: ".12em", color: "rgba(255,253,248,.85)", whiteSpace: "nowrap" }}>{label}</span>
             </div>
-            <div style={{ width: 1, height: 28, background: "rgba(11,15,14,.12)", flexShrink: 0 }} />
-            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              {mouseCoords ? (
-                <>
-                  <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10, letterSpacing: ".1em", color: "#0B0F0E" }}>{fmtDeg(mouseCoords.lat, "N", "S")}</span>
-                  <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10, letterSpacing: ".1em", color: "#0B0F0E" }}>{fmtDeg(mouseCoords.lng, "E", "W")}</span>
-                </>
-              ) : (
-                <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10, letterSpacing: ".1em", color: "#9AA39E" }}>— move cursor —</span>
-              )}
-            </div>
+            <div style={{ width: 1, height: 14, background: "rgba(255,253,248,.2)", flexShrink: 0 }} />
+            <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10, letterSpacing: ".1em", color: mouseCoords ? "#FFFDF8" : "rgba(255,253,248,.5)", whiteSpace: "nowrap" }}>
+              {mouseCoords ? coordText : "— move cursor —"}
+            </span>
           </div>
         );
       })()}
 
-      {/* ── Zoom controls ───────────────────────────────────────────────── */}
-      <div style={{ position: "absolute", right: "clamp(12px,2vw,24px)", bottom: "clamp(12px,2vw,24px)", zIndex: isMobile ? 499 : 500, display: "flex", flexDirection: "column", gap: 8 }}>
-        {[{ label: "+", action: () => mapRef.current?.zoomIn() }, { label: "−", action: () => mapRef.current?.zoomOut() }].map(({ label, action }) => (
-          <button key={label} onClick={action} style={{ width: 40, height: 40, borderRadius: 12, background: "#FFFDF8", border: "1px solid rgba(11,15,14,.2)", fontSize: 17, cursor: "pointer", boxShadow: "0 8px 20px -14px rgba(11,15,14,.7)", transition: "background .2s, border .2s" }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "#C9F24D"; e.currentTarget.style.borderColor = "#0B0F0E"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "#FFFDF8"; e.currentTarget.style.borderColor = "rgba(11,15,14,.2)"; }}>
-            {label}
-          </button>
-        ))}
-        <button onClick={() => mapRef.current?.fitWorld()} aria-label="Reset view" style={{ width: 40, height: 40, borderRadius: 12, background: "#FFFDF8", border: "1px solid rgba(11,15,14,.2)", cursor: "pointer", display: "grid", placeItems: "center", boxShadow: "0 8px 20px -14px rgba(11,15,14,.7)", transition: "background .2s, border .2s" }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = "#C9F24D"; e.currentTarget.style.borderColor = "#0B0F0E"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = "#FFFDF8"; e.currentTarget.style.borderColor = "rgba(11,15,14,.2)"; }}>
-          <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M3 7V4.6A1.6 1.6 0 014.6 3H7M13 3h2.4A1.6 1.6 0 0117 4.6V7M17 13v2.4a1.6 1.6 0 01-1.6 1.6H13M7 17H4.6A1.6 1.6 0 013 15.4V13" stroke="#0B0F0E" strokeWidth="1.6" strokeLinecap="round" /><circle cx="10" cy="10" r="1.7" fill="#0B0F0E" /></svg>
-        </button>
-      </div>
+      {/* Zoom controls moved to top-right (see "Right: layers + zoom controls" above) */}
     </main>
   );
 }

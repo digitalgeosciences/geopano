@@ -6,6 +6,10 @@ export interface Annotation {
   author: string;
   added: string;
   body: string;
+  tags?: string[];
+  category?: string;
+  color?: string;
+  priority?: "Low" | "Medium" | "High";
 }
 
 export interface Stop {
@@ -17,6 +21,9 @@ export interface Stop {
   blurb: string;
   panorama: string | null;
   annotations: Annotation[];
+  tags?: string[];
+  defaultYaw?: number;
+  defaultPitch?: number;
 }
 
 export interface Path {
@@ -25,6 +32,7 @@ export interface Path {
   city: string;
   bg: string;
   stops: Stop[];
+  tags?: string[];
 }
 
 export interface LibraryItem {
@@ -39,6 +47,7 @@ export interface LibraryItem {
   stopId: string | null;
   pathId: string | null;
   hasImage: boolean;
+  tags?: string[];
 }
 
 export type View = "landing" | "map" | "library" | "stop" | "signup" | "about" | "terms" | "privacy";
@@ -54,6 +63,8 @@ declare global {
         getYaw: () => number;
         getPitch: () => number;
         getHfov: () => number;
+        setYaw: (yaw: number, animated?: boolean) => void;
+        setPitch: (pitch: number, animated?: boolean) => void;
         startAutoRotate: (speed: number) => void;
         stopAutoRotate: () => void;
       };

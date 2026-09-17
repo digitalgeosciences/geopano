@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import db from "../data/db.json";
 import { Path, View } from "../types";
 
-const paths = db.paths as Path[];
+const paths = db.paths as unknown as Path[];
 // ── types ────────────────────────────────────────────────────────────────────
 
 interface SpherePoint { yaw: number; pitch: number; }

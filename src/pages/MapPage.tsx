@@ -3,7 +3,7 @@ import db from "../data/db.json";
 import type { Path, View } from "../types";
 import { useIsMobile } from "../hooks/useWindowWidth";
 
-const paths = db.paths as Path[];
+const paths = db.paths as unknown as Path[];
 
 interface Props {
   onNav: (v: View) => void;

@@ -49,7 +49,14 @@ declare global {
       viewer: (
         container: HTMLElement,
         config: Record<string, unknown>
-      ) => { destroy: () => void; getYaw: () => number; getPitch: () => number; getHfov: () => number };
+      ) => {
+        destroy: () => void;
+        getYaw: () => number;
+        getPitch: () => number;
+        getHfov: () => number;
+        startAutoRotate: (speed: number) => void;
+        stopAutoRotate: () => void;
+      };
     };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     L: any;

@@ -250,61 +250,111 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
 
   const anyPanelOpen = annListOpen || pathPanelOpen || navConfigOpen || !!openAnnId || addAnnMode || formVisible;
 
-  // Pannellum init
+  // Pannellum init with Progressive Loading (Google Street View approach)
   useEffect(() => {
     if (!viewerRef.current || !window.pannellum) return;
     setPanoLoaded(false);
-    setLoadProgress(0);
+    setLoadProgress(15);
 
-    // Simulate loading progress while image downloads
-    let progressInterval: ReturnType<typeof setInterval> | null = null;
-    let currentProgress = 0;
-    progressInterval = setInterval(() => {
-      if (currentProgress < 85) {
-        currentProgress += Math.random() * 8 + 2;
-        currentProgress = Math.min(currentProgress, 85);
-        setLoadProgress(Math.round(currentProgress));
-      }
-    }, 200);
+    const isCarStop = curStop.id.startsWith("sp0000") && parseInt(curStop.id.slice(2)) <= 4;
+    const startYaw = initialYaw ?? curStop.defaultYaw ?? (isCarStop ? 85 : 0);
+    const startPitch = initialPitch ?? curStop.defaultPitch ?? (isCarStop ? 14 : 0);
+    const startHfov = 72; // Natural, focused perspective (not wide fish-eye)
 
-    const startYaw = initialYaw ?? curStop.defaultYaw ?? 0;
-    const startPitch = initialPitch ?? curStop.defaultPitch ?? 0;
+    const hasPreview = Boolean(previewUrl && previewUrl !== panoramaUrl);
 
-    const viewer = window.pannellum.viewer(viewerRef.current, {
-      type: "equirectangular",
-      panorama: panoramaUrl,
-      preview: previewUrl,
-      autoLoad: true,
-      showControls: false,
-      showZoomCtrl: false,
-      showFullscreenCtrl: false,
-      autoRotate: 0,
-      autoRotateInactivityDelay: -1,
-      compass: false,
-      hfov: 90,
-      yaw: startYaw,
-      pitch: startPitch,
-      hotSpots: [],
-      strings: { loadingLabel: "" },
-    });
+    // Multi-scene progressive config: instant low-res preview -> background high-res upgrade
+    const pannellumConfig: Record<string, unknown> = hasPreview
+      ? {
+          default: {
+            firstScene: "preview",
+            autoLoad: true,
+            showControls: false,
+            showZoomCtrl: false,
+            showFullscreenCtrl: false,
+            autoRotate: 0,
+            autoRotateInactivityDelay: -1,
+            compass: false,
+            hfov: startHfov,
+            minHfov: 40,
+            maxHfov: 85,
+            minPitch: isCarStop ? -18 : -40,
+            maxPitch: 65,
+            yaw: startYaw,
+            pitch: startPitch,
+            hotSpots: [],
+            strings: { loadingLabel: "" },
+          },
+          scenes: {
+            preview: {
+              type: "equirectangular",
+              panorama: previewUrl,
+            },
+            hires: {
+              type: "equirectangular",
+              panorama: panoramaUrl,
+            },
+          },
+        }
+      : {
+          type: "equirectangular",
+          panorama: panoramaUrl,
+          autoLoad: true,
+          showControls: false,
+          showZoomCtrl: false,
+          showFullscreenCtrl: false,
+          autoRotate: 0,
+          autoRotateInactivityDelay: -1,
+          compass: false,
+          hfov: startHfov,
+          minHfov: 40,
+          maxHfov: 85,
+          minPitch: isCarStop ? -18 : -40,
+          maxPitch: 65,
+          yaw: startYaw,
+          pitch: startPitch,
+          hotSpots: [],
+          strings: { loadingLabel: "" },
+        };
+
+    const viewer = window.pannellum.viewer(viewerRef.current, pannellumConfig);
     pannellumRef.current = viewer;
 
-    // Listen for full panorama load completion
-    const checkLoaded = setInterval(() => {
-      try {
-        // Pannellum sets the loaded flag internally; check via the container
-        const container = viewerRef.current;
-        if (container) {
-          const loadingEl = container.querySelector('.pnlm-load-box');
-          if (!loadingEl || (loadingEl as HTMLElement).style.display === 'none') {
-            setPanoLoaded(true);
-            if (progressInterval) { clearInterval(progressInterval); progressInterval = null; }
-            setLoadProgress(100);
-            clearInterval(checkLoaded);
+    let destroyed = false;
+    let progressTimer: ReturnType<typeof setInterval> | null = null;
+
+    // Progressive background loader for high-resolution texture
+    if (hasPreview) {
+      setLoadProgress(30);
+      progressTimer = setInterval(() => {
+        setLoadProgress((p) => (p < 90 ? p + 8 : p));
+      }, 250);
+
+      const highResImg = new Image();
+      highResImg.src = panoramaUrl;
+      highResImg.onload = () => {
+        if (destroyed) return;
+        if (progressTimer) clearInterval(progressTimer);
+        try {
+          const v = pannellumRef.current as any;
+          if (v && typeof v.loadScene === "function") {
+            // Seamlessly upgrade to high-resolution scene without jumping view
+            v.loadScene("hires", v.getPitch(), v.getYaw(), v.getHfov());
           }
+          setPanoLoaded(true);
+          setLoadProgress(100);
+        } catch {
+          setPanoLoaded(true);
         }
-      } catch { /* viewer destroyed */ clearInterval(checkLoaded); }
-    }, 100);
+      };
+      highResImg.onerror = () => {
+        if (progressTimer) clearInterval(progressTimer);
+        setPanoLoaded(true);
+      };
+    } else {
+      setPanoLoaded(true);
+      setLoadProgress(100);
+    }
 
     const id = window.setInterval(() => {
       try {
@@ -320,9 +370,9 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
     }, 33);
 
     return () => {
+      destroyed = true;
       clearInterval(id);
-      clearInterval(checkLoaded);
-      if (progressInterval) clearInterval(progressInterval);
+      if (progressTimer) clearInterval(progressTimer);
       try { viewer.destroy(); } catch { /* */ }
       pannellumRef.current = null;
     };

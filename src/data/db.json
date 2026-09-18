@@ -15,7 +15,7 @@
           "blurb": "First outcrop station along the Qiddiya escarpment descent. Exposed sedimentary units of the Wajid and Khuff sequences characterise the plateau edge south-west of Riyadh.",
           "panorama": "/uploads/sp00001.jpg",
           "defaultYaw": 85,
-          "defaultPitch": 6,
+          "defaultPitch": 14,
           "annotations": []
         },
         {
@@ -27,7 +27,7 @@
           "blurb": "Mid-slope station documenting the transition from the plateau caprock to the talus slope. Cross-bedded sandstone packages visible in the upper cliff face.",
           "panorama": "/uploads/sp00002.jpg",
           "defaultYaw": 85,
-          "defaultPitch": 6,
+          "defaultPitch": 14,
           "annotations": []
         },
         {
@@ -39,7 +39,7 @@
           "blurb": "Lower escarpment exposure where jointing and erosional fluting in the sandstone record long-term weathering under an arid regime.",
           "panorama": "/uploads/sp00003.jpg",
           "defaultYaw": 85,
-          "defaultPitch": 6,
+          "defaultPitch": 14,
           "annotations": []
         },
         {
@@ -51,7 +51,7 @@
           "blurb": "Base-of-slope station. Angular debris and desert varnish on fallen blocks provide evidence of episodic cliff retreat over the Quaternary.",
           "panorama": "/uploads/sp00004.jpg",
           "defaultYaw": 85,
-          "defaultPitch": 6,
+          "defaultPitch": 14,
           "annotations": []
         }
       ]

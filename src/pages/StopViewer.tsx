@@ -179,6 +179,18 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
   const [navConfigOpen, setNavConfigOpen] = useState(false);
   const [placingArrow, setPlacingArrow] = useState<"next" | "prev" | null>(null);
 
+  // Compass menu state and North calibration
+  const [compassMenuOpen, setCompassMenuOpen] = useState(false);
+  const [northHeading, setNorthHeading] = useState<number>(() => {
+    const saved = localStorage.getItem(`geopano_north_${stopId}`);
+    return saved ? parseFloat(saved) : 0;
+  });
+
+  useEffect(() => {
+    const saved = localStorage.getItem(`geopano_north_${stopId}`);
+    setNorthHeading(saved ? parseFloat(saved) : 0);
+  }, [stopId]);
+
   // add-annotation flow
   const [addAnnMode, setAddAnnMode] = useState(false);
   const [addAnnKind, setAddAnnKind] = useState<"point" | "line" | "polygon">("point");
@@ -334,6 +346,24 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
     if (!v) return;
     try { v.stopAutoRotate(); } catch { /* viewer may be mid-init */ }
   }, [anyPanelOpen, addAnnMode]);
+
+  function lookAt(pitch: number, yaw: number, hfov?: number) {
+    const v = pannellumRef.current as any;
+    if (!v) return;
+    try {
+      if (typeof v.lookAt === "function") {
+        v.lookAt(pitch, yaw, hfov ?? v.getHfov?.() ?? 90, 800);
+      } else {
+        if (typeof v.setYaw === "function") v.setYaw(yaw);
+        if (typeof v.setPitch === "function") v.setPitch(pitch);
+      }
+    } catch {
+      try {
+        if (typeof v.setYaw === "function") v.setYaw(yaw);
+        if (typeof v.setPitch === "function") v.setPitch(pitch);
+      } catch {}
+    }
+  }
 
   // ── annotation placement ──────────────────────────────────────────────────
 
@@ -633,13 +663,13 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
         <div style={{ position: "absolute", right: "clamp(12px,2vw,24px)", top: "clamp(12px,2vw,24px)", zIndex: 20, width: "min(310px,calc(100% - 80px))", pointerEvents: "auto" }}>
           <div style={{ padding: "14px 18px", borderRadius: 20, background: "rgba(255,253,248,.95)", border: "1px solid rgba(11,15,14,.16)", backdropFilter: "blur(10px)", boxShadow: "0 14px 34px -22px rgba(11,15,14,.7)", display: "flex", alignItems: "flex-start", gap: 10 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10, letterSpacing: ".16em", color: "#5A635F", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              <div style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "#5A635F", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {curPath.name.toUpperCase()} · STOP {stopIdx + 1} OF {curPath.stops.length}
               </div>
               <h1 style={{ fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 800, fontSize: "clamp(18px,2vw,24px)", letterSpacing: "-.03em", lineHeight: 1.05, margin: "7px 0 6px" }}>
                 {curStop.title}
               </h1>
-              <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10, letterSpacing: ".12em", color: "#5A635F" }}>
+              <div style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 500, color: "#5A635F" }}>
                 {curStop.lat}, {curStop.lon}
               </div>
             </div>
@@ -749,12 +779,12 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
         {annListOpen && (
           <div style={{ pointerEvents: "auto", position: "absolute", left: 52, top: 118, width: "min(310px,calc(100vw - 90px))", maxHeight: "calc(100vh - 200px)", display: "flex", flexDirection: "column", borderRadius: 20, overflow: "hidden", background: "rgba(255,253,248,.96)", border: "1px solid rgba(11,15,14,.14)", backdropFilter: "blur(10px)", boxShadow: "0 18px 42px -24px rgba(11,15,14,.8)" }}>
             <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "12px 14px 12px 18px", borderBottom: "1px solid rgba(11,15,14,.1)" }}>
-              <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10, letterSpacing: ".16em", color: "#5A635F" }}>ANNOTATIONS · {localAnns.length}</span>
+              <span style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "#3E4744" }}>ANNOTATIONS · {localAnns.length}</span>
               <button onClick={() => setAnnListOpen(false)} style={{ width: 28, height: 28, borderRadius: 999, border: "1px solid #0B0F0E", background: "#C9F24D", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
                 <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 2l8 8M10 2L2 10" stroke="#0B0F0E" strokeWidth="1.8" strokeLinecap="round" /></svg>
               </button>
             </div>
-            <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto" }}>
+            <div className="gp-popover-scroll" style={{ flex: "1 1 auto", minHeight: 0, paddingRight: 4 }}>
               {localAnns.length === 0 && (
                 <div style={{ padding: "24px 18px", textAlign: "center", color: "#5A635F", fontSize: 13 }}>No annotations yet.</div>
               )}
@@ -1233,19 +1263,179 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
       )}
 
       {/* ── Bottom-left: Compass + YAW / PITCH + share ──────────────────── */}
-      <div style={{ position: "absolute", left: "clamp(12px,2vw,24px)", bottom: "clamp(12px,2vw,24px)", zIndex: 20, display: "flex", alignItems: "center", gap: 8, whiteSpace: "nowrap" }}>
-        {/* Compass */}
-        <div style={{ width: 36, height: 36, borderRadius: 999, background: "rgba(11,15,14,.62)", backdropFilter: "blur(8px)", display: "grid", placeItems: "center", flexShrink: 0 }}>
-          <svg width="20" height="20" viewBox="0 0 20 20" style={{ transform: `rotate(${-vs.yaw}deg)`, transition: "transform .15s ease-out" }}>
-            {/* North needle */}
-            <polygon points="10,2 8,10 12,10" fill="#C9F24D" />
-            {/* South needle */}
-            <polygon points="10,18 8,10 12,10" fill="rgba(255,253,248,.3)" />
-            {/* N label */}
-            <text x="10" y="5.5" textAnchor="middle" fill="#0B0F0E" fontSize="4" fontWeight="800" fontFamily="'JetBrains Mono',monospace">N</text>
-          </svg>
+      <div style={{ position: "absolute", left: "clamp(12px,2vw,24px)", bottom: "clamp(12px,2vw,24px)", zIndex: 25, display: "flex", alignItems: "center", gap: 8, whiteSpace: "nowrap" }}>
+        {/* Compass / North arrow with click menu */}
+        <div style={{ position: "relative" }}>
+          {compassMenuOpen && (
+            <div
+              style={{
+                position: "absolute",
+                left: 0,
+                bottom: 58,
+                width: 220,
+                borderRadius: 16,
+                background: "rgba(255,253,248,.98)",
+                border: "1.5px solid rgba(11,15,14,.16)",
+                boxShadow: "0 18px 40px -12px rgba(11,15,14,.6)",
+                backdropFilter: "blur(14px)",
+                padding: "12px 14px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+                zIndex: 40,
+                pointerEvents: "auto",
+              }}
+            >
+              {/* Header */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 2 }}>
+                <span style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "#3E4744" }}>
+                  NORTH ORIENTATION
+                </span>
+                <button
+                  onClick={() => setCompassMenuOpen(false)}
+                  style={{ width: 22, height: 22, borderRadius: 999, background: "#C9F24D", border: "1px solid #0B0F0E", cursor: "pointer", display: "grid", placeItems: "center" }}
+                >
+                  <svg width="8" height="8" viewBox="0 0 12 12" fill="none"><path d="M2 2l8 8M10 2L2 10" stroke="#0B0F0E" strokeWidth="2" strokeLinecap="round" /></svg>
+                </button>
+              </div>
+
+              {/* Set Current View as North (Calibrate) */}
+              <button
+                onClick={() => {
+                  const newNorth = vs.yaw;
+                  setNorthHeading(newNorth);
+                  localStorage.setItem(`geopano_north_${stopId}`, newNorth.toString());
+                  setCompassMenuOpen(false);
+                }}
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  borderRadius: 10,
+                  background: "#0B0F0E",
+                  color: "#FFFDF8",
+                  border: "none",
+                  fontWeight: 700,
+                  fontSize: 12,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  fontFamily: "'Instrument Sans',sans-serif",
+                  transition: "background .15s",
+                }}
+              >
+                <span style={{ color: "#EF4444", fontSize: 14 }}>◎</span> Set Current View as North
+              </button>
+
+              {/* Reset View to North */}
+              <button
+                onClick={() => {
+                  lookAt(0, northHeading, 90);
+                  setCompassMenuOpen(false);
+                }}
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  borderRadius: 10,
+                  background: "#C9F24D",
+                  color: "#0B0F0E",
+                  border: "1px solid #0B0F0E",
+                  fontWeight: 700,
+                  fontSize: 12,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  fontFamily: "'Instrument Sans',sans-serif",
+                  transition: "background .15s",
+                }}
+              >
+                <span>↺</span> Reset View to North
+              </button>
+
+              {northHeading !== 0 && (
+                <button
+                  onClick={() => {
+                    setNorthHeading(0);
+                    localStorage.removeItem(`geopano_north_${stopId}`);
+                    setCompassMenuOpen(false);
+                  }}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#5A635F",
+                    fontSize: 10,
+                    fontFamily: "'Instrument Sans',sans-serif",
+                    cursor: "pointer",
+                    textDecoration: "underline",
+                    padding: "2px 0",
+                    textAlign: "center",
+                  }}
+                >
+                  Reset calibration to 0°
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Compass / North button (Enlarged circle, thinner border, N moves with arrow, horizontally aligned) */}
+          <button
+            onClick={() => setCompassMenuOpen((o) => !o)}
+            title="North Compass — Click for view options and orientation"
+            aria-label="North Compass"
+            style={{
+              background: "none",
+              border: "none",
+              padding: 0,
+              width: 52,
+              height: 52,
+              display: "grid",
+              placeItems: "center",
+              flexShrink: 0,
+              cursor: "pointer",
+              outline: "none",
+              transition: "transform .15s",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.08)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
+          >
+            <svg
+              width="52"
+              height="52"
+              viewBox="0 0 52 52"
+              style={{ filter: "drop-shadow(0 6px 16px rgba(0,0,0,0.45))", overflow: "visible" }}
+            >
+              {/* The one and only circle (enlarged, thinner border) */}
+              <circle
+                cx="26"
+                cy="26"
+                r="18"
+                fill={compassMenuOpen ? "#C9F24D" : "#FFFDF8"}
+                stroke="#0B0F0E"
+                strokeWidth="1.2"
+              />
+
+              {/* Tick marks inside the circle */}
+              <line x1="26" y1="9.5" x2="26" y2="13" stroke="#EF4444" strokeWidth="1.2" strokeLinecap="round" />
+              <line x1="26" y1="42.5" x2="26" y2="39" stroke="rgba(11,15,14,.3)" strokeWidth="1.2" strokeLinecap="round" />
+              <line x1="9.5" y1="26" x2="13" y2="26" stroke="rgba(11,15,14,.3)" strokeWidth="1.2" strokeLinecap="round" />
+              <line x1="42.5" y1="26" x2="39" y2="26" stroke="rgba(11,15,14,.3)" strokeWidth="1.2" strokeLinecap="round" />
+
+              {/* Rotating needle group: N moves with the north arrow */}
+              <g style={{ transform: `rotate(${-(vs.yaw - northHeading)}deg)`, transformOrigin: "26px 26px", transition: "transform .12s ease-out" }}>
+                {/* Red N label moving with north arrow outside the circle */}
+                <text x="26" y="5" textAnchor="middle" fill="#EF4444" fontSize="8" fontWeight="900" fontFamily="'Instrument Sans',sans-serif">N</text>
+                {/* North needle (bright red) */}
+                <polygon points="26,10.5 22,26 30,26" fill="#EF4444" stroke="#DC2626" strokeWidth="0.5" />
+                {/* South needle (dark charcoal) */}
+                <polygon points="26,41.5 22,26 30,26" fill="#1E293B" />
+              </g>
+            </svg>
+          </button>
         </div>
-        <div style={{ padding: "9px 16px", borderRadius: 999, background: "rgba(11,15,14,.62)", backdropFilter: "blur(8px)", color: "#FFFDF8", fontFamily: "'JetBrains Mono',monospace", fontSize: 11, letterSpacing: ".08em", pointerEvents: "none", display: "flex", gap: 14 }}>
+        <div style={{ padding: "9px 16px", borderRadius: 999, background: "rgba(11,15,14,.75)", backdropFilter: "blur(8px)", color: "#FFFDF8", fontFamily: "'Instrument Sans',sans-serif", fontSize: 12, fontWeight: 600, letterSpacing: ".04em", pointerEvents: "none", display: "flex", gap: 14 }}>
           {addAnnMode && !formVisible
             ? <span>YAW {vs.yaw.toFixed(1)}° · CLICK TO PLACE</span>
             : <>

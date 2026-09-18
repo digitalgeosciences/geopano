@@ -377,20 +377,7 @@ export default function Landing({ onNav }: Props) {
                 </>
               );
             })()}
-            <div
-              style={{
-                position: "absolute",
-                left: 14,
-                bottom: 10,
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 10,
-                letterSpacing: ".14em",
-                color: "#5A635F",
-                animation: "gp-fade 1s .8s both",
-              }}
-            >
-              PATH · {realPath.stops.length} STOPS · CLICK TO TRAVEL
-            </div>
+
           </div>
         </div>
       </section>

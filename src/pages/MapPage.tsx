@@ -577,7 +577,7 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
         const active = isSel && si === selStop;
         const visited = isSel && si < selStop;
         const baseSize = z >= 12 ? 22 : z >= 8 ? 17 : 14;
-        const markerSize = active ? baseSize + 8 : baseSize;
+        const markerSize = baseSize;
         const cls = "gp-pin" + (active ? " is-active" : visited ? " is-visited" : "");
 
         const marker = L.marker(s.ll as [number, number], {
@@ -806,106 +806,139 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
 
             {(panel === "paths" || panel === "stop") && (
               <div style={{ ...popoverStyle(0), display: "flex", flexDirection: "column" }}>
-                {/* Header */}
-                <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px 8px" }}>
-                  <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 9, letterSpacing: ".18em", color: "#5A635F" }}>PATHS · {filteredPaths.length}</span>
-                  <button onClick={() => setPanel("none")} style={closeBtn}><CloseX /></button>
-                </div>
-                {/* Search inside popover */}
-                <div style={{ flexShrink: 0, paddingBottom: 10 }}>
-                  {searchBar(pathSearch, (v) => { setPathSearch(v); setPathsExpanded(false); }, "Search paths…")}
-                </div>
-                {/* Path list */}
-                <div style={{ flex: isMobile ? 1 : undefined, maxHeight: isMobile ? "none" : 220, overflowY: "auto" }}>
-                  {visiblePaths.map((p) => {
-                    const pi = paths.indexOf(p);
-                    const on = pi === pathIdx;
-                    return (
-                      <button key={p.id} onClick={() => flyToPath(pi)}
-                        style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", border: "none", borderBottom: "1px solid rgba(11,15,14,.06)", cursor: "pointer", textAlign: "left", background: on ? "rgba(201,242,77,.28)" : "transparent", transition: "background .12s", fontFamily: "inherit" }}>
-                        <span style={{ width: 8, height: 8, borderRadius: 99, flexShrink: 0, border: "1px solid #0B0F0E", background: on ? "#C9F24D" : "#FFFDF8", display: "block" }} />
-                        <span style={{ minWidth: 0 }}>
-                          <span style={{ display: "block", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</span>
-                          <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 9, letterSpacing: ".1em", color: "#5A635F" }}>{p.city} · {p.stops.length} STOP{p.stops.length !== 1 ? "S" : ""}</span>
-                        </span>
-                      </button>
-                    );
-                  })}
-                  {filteredPaths.length > 5 && (
-                    <button onClick={() => setPathsExpanded((x) => !x)}
-                      style={{ width: "100%", padding: "9px 14px", border: "none", borderBottom: "1px solid rgba(11,15,14,.06)", cursor: "pointer", textAlign: "left", background: "transparent", fontFamily: "'JetBrains Mono',monospace", fontSize: 9, letterSpacing: ".14em", color: "#14504A" }}>
-                      {pathsExpanded ? "SHOW LESS ↑" : `VIEW MORE (${filteredPaths.length - 5}) ↓`}
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
+                {panel === "paths" ? (
+                  <>
+                    {/* Header */}
+                    <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px 8px" }}>
+                      <span style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "#3E4744" }}>PATHS · {filteredPaths.length}</span>
+                      <button onClick={() => setPanel("none")} style={closeBtn}><CloseX /></button>
+                    </div>
+                    {/* Search inside popover */}
+                    <div style={{ flexShrink: 0, paddingBottom: 10 }}>
+                      {searchBar(pathSearch, (v) => { setPathSearch(v); setPathsExpanded(false); }, "Search paths…")}
+                    </div>
+                    {/* Path list */}
+                    <div className="gp-popover-scroll" style={{ flex: isMobile ? 1 : undefined, maxHeight: isMobile ? "none" : 260, paddingRight: 4 }}>
+                      {visiblePaths.map((p) => {
+                        const pi = paths.indexOf(p);
+                        const on = pi === pathIdx;
+                        return (
+                          <button key={p.id} onClick={() => flyToPath(pi)}
+                            style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", border: "none", borderBottom: "1px solid rgba(11,15,14,.06)", cursor: "pointer", textAlign: "left", background: on ? "rgba(201,242,77,.28)" : "transparent", transition: "background .12s", fontFamily: "inherit" }}>
+                            <span style={{ width: 8, height: 8, borderRadius: 99, flexShrink: 0, border: "1px solid #0B0F0E", background: on ? "#C9F24D" : "#FFFDF8", display: "block" }} />
+                            <span style={{ minWidth: 0, flex: 1 }}>
+                              <span style={{ display: "block", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</span>
+                              <span style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 500, color: "#5A635F" }}>{p.city} · {p.stops.length} STOP{p.stops.length !== 1 ? "S" : ""}</span>
+                            </span>
+                            <span style={{ color: "#9AA39E", fontSize: 13 }}>→</span>
+                          </button>
+                        );
+                      })}
+                      {filteredPaths.length > 5 && (
+                        <button onClick={() => setPathsExpanded((x) => !x)}
+                          style={{ width: "100%", padding: "9px 14px", border: "none", borderBottom: "1px solid rgba(11,15,14,.06)", cursor: "pointer", textAlign: "left", background: "transparent", fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: ".04em", color: "#14504A" }}>
+                          {pathsExpanded ? "SHOW LESS ↑" : `VIEW MORE (${filteredPaths.length - 5}) ↓`}
+                        </button>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Header with Back Arrow and Close button */}
+                    <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px 10px", borderBottom: "1px solid rgba(11,15,14,.07)", gap: 8 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                        <button
+                          onClick={() => setPanel("paths")}
+                          title="Back to all paths"
+                          aria-label="Back to all paths"
+                          style={{
+                            width: 26,
+                            height: 26,
+                            borderRadius: 999,
+                            background: "#FFFDF8",
+                            border: "1px solid rgba(11,15,14,.2)",
+                            cursor: "pointer",
+                            display: "grid",
+                            placeItems: "center",
+                            flexShrink: 0,
+                            transition: "background .15s, border-color .15s",
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = "#C9F24D"; e.currentTarget.style.borderColor = "#0B0F0E"; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = "#FFFDF8"; e.currentTarget.style.borderColor = "rgba(11,15,14,.2)"; }}
+                        >
+                          <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                            <path d="M10 3L5 8l5 5" stroke="#0B0F0E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </button>
+                        <div style={{ minWidth: 0 }}>
+                          <span style={{ display: "block", fontFamily: "'Instrument Sans',sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: ".08em", color: "#5A635F", textTransform: "uppercase" }}>
+                            STOPS · {curPath.stops.length}
+                          </span>
+                          <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#0B0F0E", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            {curPath.name}
+                          </span>
+                        </div>
+                      </div>
+                      <button onClick={() => setPanel("none")} style={closeBtn}><CloseX /></button>
+                    </div>
 
-            {/* Stops popup — separate card */}
-            {panel === "stop" && (
-              <div style={{ ...(isMobile
-                ? { position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 601, borderRadius: "16px 16px 0 0", maxHeight: "45vh", overflow: "hidden", display: "flex", flexDirection: "column", background: "rgba(255,253,248,.99)", border: "1px solid rgba(11,15,14,.14)", backdropFilter: "blur(16px)", boxShadow: "0 -8px 32px -8px rgba(11,15,14,.3)" }
-                : { position: "absolute", left: 52, top: 360, width: 300, borderRadius: 16, overflow: "hidden", background: "rgba(255,253,248,.97)", border: "1px solid rgba(11,15,14,.14)", backdropFilter: "blur(12px)", boxShadow: "0 12px 32px -16px rgba(11,15,14,.7)" }
-              ), display: "flex", flexDirection: "column" }}>
-                <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px 8px" }}>
-                  <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 9, letterSpacing: ".16em", color: "#5A635F" }}>
-                    STOPS IN {curPath.name.toUpperCase()}
-                  </span>
-                  <button onClick={() => setPanel("paths")} style={closeBtn}><CloseX /></button>
-                </div>
-                <div style={{ flex: 1, overflowY: "auto" }}>
-                  {visibleStops.map((s, si) => {
-                    const active = si === stopIdx;
-                    return (
-                      <button key={s.id} onClick={() => {
-                        stopIdxRef.current = si;
-                        setStopIdx(si);
-                        onSelectStop(curPath.id, s.id);
-                        window.history.replaceState(null, "", `#/map/${curPath.id}/${s.id}`);
-                        if (mapRef.current) {
-                          mapRef.current.flyTo(s.ll as [number, number], Math.max(mapRef.current.getZoom(), 14), { duration: 0.8 });
-                        }
+                    {/* Stops list */}
+                    <div className="gp-popover-scroll" style={{ flex: isMobile ? 1 : undefined, maxHeight: isMobile ? "none" : 220, paddingRight: 4 }}>
+                      {visibleStops.map((s, si) => {
+                        const active = si === stopIdx;
+                        return (
+                          <button key={s.id} onClick={() => {
+                            stopIdxRef.current = si;
+                            setStopIdx(si);
+                            onSelectStop(curPath.id, s.id);
+                            window.history.replaceState(null, "", `#/map/${curPath.id}/${s.id}`);
+                            if (mapRef.current) {
+                              mapRef.current.flyTo(s.ll as [number, number], Math.max(mapRef.current.getZoom(), 14), { duration: 0.8 });
+                            }
+                          }}
+                            style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", border: "none", borderBottom: "1px solid rgba(11,15,14,.05)", cursor: "pointer", textAlign: "left", background: active ? "rgba(201,242,77,.22)" : "transparent", fontFamily: "inherit", transition: "background .12s" }}>
+                            <span style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, color: active ? "#EF4444" : "#6B7280", fontWeight: active ? 700 : 500, flexShrink: 0, width: 20 }}>{(si + 1).toString().padStart(2, "0")}</span>
+                            <span style={{ flex: 1, fontSize: 13, fontWeight: active ? 600 : 400, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.title}</span>
+                            {active && <span style={{ fontSize: 11, color: "#EF4444", flexShrink: 0 }}>●</span>}
+                          </button>
+                        );
+                      })}
+                      {pathStops.length > 5 && (
+                        <button onClick={() => setStopsExpanded((x) => !x)}
+                          style={{ width: "100%", padding: "8px 14px", border: "none", cursor: "pointer", textAlign: "left", background: "transparent", fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: ".04em", color: "#14504A" }}>
+                          {stopsExpanded ? "SHOW LESS ↑" : `VIEW MORE (${pathStops.length - 5}) ↓`}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* CTA row */}
+                    <div style={{ flexShrink: 0, padding: "10px 14px 14px", display: "flex", gap: 7, borderTop: "1px solid rgba(11,15,14,.08)" }}>
+                      <button onClick={() => {
+                        onSelectStop(curPath.id, curStop.id);
+                        window.location.hash = `#/stop/${curPath.id}/${curStop.id}`;
                       }}
-                        style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", border: "none", borderBottom: "1px solid rgba(11,15,14,.05)", cursor: "pointer", textAlign: "left", background: active ? "rgba(201,242,77,.22)" : "transparent", fontFamily: "inherit", transition: "background .12s" }}>
-                        <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 9, color: "#9AA39E", flexShrink: 0, width: 18 }}>{(si + 1).toString().padStart(2, "0")}</span>
-                        <span style={{ flex: 1, fontSize: 13, fontWeight: active ? 600 : 400, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.title}</span>
-                        {active && <span style={{ fontSize: 10, color: "#14504A", flexShrink: 0 }}>●</span>}
+                        style={{ flex: 1, padding: "9px 0", borderRadius: 999, background: "#C9F24D", border: "1px solid #0B0F0E", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
+                        View 360° ↗
                       </button>
-                    );
-                  })}
-                  {pathStops.length > 5 && (
-                    <button onClick={() => setStopsExpanded((x) => !x)}
-                      style={{ width: "100%", padding: "8px 14px", border: "none", cursor: "pointer", textAlign: "left", background: "transparent", fontFamily: "'JetBrains Mono',monospace", fontSize: 9, letterSpacing: ".14em", color: "#14504A" }}>
-                      {stopsExpanded ? "SHOW LESS ↑" : `VIEW MORE (${pathStops.length - 5}) ↓`}
-                    </button>
-                  )}
-                </div>
-                {/* CTA row */}
-                <div style={{ flexShrink: 0, padding: "10px 14px 14px", display: "flex", gap: 7, borderTop: "1px solid rgba(11,15,14,.08)" }}>
-                  <button onClick={() => {
-                    onSelectStop(curPath.id, curStop.id);
-                    window.location.hash = `#/stop/${curPath.id}/${curStop.id}`;
-                  }}
-                    style={{ flex: 1, padding: "9px 0", borderRadius: 999, background: "#C9F24D", border: "1px solid #0B0F0E", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
-                    View 360° ↗
-                  </button>
-                  <button onClick={() => {
-                    const nextIdx = Math.min(stopIdx + 1, curPath.stops.length - 1);
-                    stopIdxRef.current = nextIdx;
-                    setStopIdx(nextIdx);
-                    const nextStop = curPath.stops[nextIdx];
-                    if (nextStop) {
-                      onSelectStop(curPath.id, nextStop.id);
-                      window.history.replaceState(null, "", `#/map/${curPath.id}/${nextStop.id}`);
-                      if (mapRef.current) {
-                        mapRef.current.flyTo(nextStop.ll as [number, number], Math.max(mapRef.current.getZoom(), 14), { duration: 0.8 });
-                      }
-                    }
-                  }} disabled={stopIdx >= curPath.stops.length - 1}
-                    style={{ padding: "9px 12px", borderRadius: 999, background: "transparent", border: "1px solid rgba(11,15,14,.22)", fontSize: 12, cursor: "pointer", fontFamily: "inherit", opacity: stopIdx >= curPath.stops.length - 1 ? 0.35 : 1 }}>
-                    Next →
-                  </button>
-                </div>
+                      <button onClick={() => {
+                        const nextIdx = Math.min(stopIdx + 1, curPath.stops.length - 1);
+                        stopIdxRef.current = nextIdx;
+                        setStopIdx(nextIdx);
+                        const nextStop = curPath.stops[nextIdx];
+                        if (nextStop) {
+                          onSelectStop(curPath.id, nextStop.id);
+                          window.history.replaceState(null, "", `#/map/${curPath.id}/${nextStop.id}`);
+                          if (mapRef.current) {
+                            mapRef.current.flyTo(nextStop.ll as [number, number], Math.max(mapRef.current.getZoom(), 14), { duration: 0.8 });
+                          }
+                        }
+                      }} disabled={stopIdx >= curPath.stops.length - 1}
+                        style={{ padding: "9px 12px", borderRadius: 999, background: "transparent", border: "1px solid rgba(11,15,14,.22)", fontSize: 12, cursor: "pointer", fontFamily: "inherit", opacity: stopIdx >= curPath.stops.length - 1 ? 0.35 : 1 }}>
+                        Next →
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -919,15 +952,15 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
             {panel === "annotations" && (
               <div style={{ ...popoverStyle(0), display: "flex", flexDirection: "column" }}>
                 <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px 8px" }}>
-                  <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 9, letterSpacing: ".18em", color: "#5A635F" }}>ANNOTATIONS · {filteredAnns.length}</span>
+                  <span style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "#3E4744" }}>ANNOTATIONS · {filteredAnns.length}</span>
                   <button onClick={() => setPanel("none")} style={closeBtn}><CloseX /></button>
                 </div>
                 <div style={{ flexShrink: 0, paddingBottom: 10 }}>
                   {searchBar(annSearch, (v) => { setAnnSearch(v); setAnnExpanded(false); }, "Search annotations…")}
                 </div>
-                <div style={{ flex: isMobile ? 1 : undefined, maxHeight: isMobile ? "none" : 240, overflowY: "auto" }}>
+                <div className="gp-popover-scroll" style={{ flex: isMobile ? 1 : undefined, maxHeight: isMobile ? "none" : 240, paddingRight: 4 }}>
                   {filteredAnns.length === 0 ? (
-                    <div style={{ padding: "24px 14px", textAlign: "center", color: "#9AA39E", fontSize: 12, fontFamily: "'JetBrains Mono',monospace", letterSpacing: ".1em" }}>
+                    <div style={{ padding: "24px 14px", textAlign: "center", color: "#6B7280", fontSize: 12, fontFamily: "'Instrument Sans',sans-serif", fontWeight: 600, letterSpacing: ".04em" }}>
                       {annSearch ? "NO MATCHES" : "NO ANNOTATIONS YET"}
                     </div>
                   ) : visibleAnns.map((a) => (
@@ -935,14 +968,14 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
                       <span style={{ width: 7, height: 7, borderRadius: 99, background: "#C9F24D", border: "1px solid #0B0F0E", display: "block", flexShrink: 0, marginTop: 4 }} />
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.title}</div>
-                        <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 9, color: "#5A635F" }}>{a.ll[0].toFixed(3)}, {a.ll[1].toFixed(3)}</div>
+                        <div style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 500, color: "#5A635F" }}>{a.ll[0].toFixed(3)}, {a.ll[1].toFixed(3)}</div>
                       </div>
                       <button onClick={() => setAnnotations((prev) => prev.filter((x) => x.id !== a.id))} style={{ ...closeBtn, width: 22, height: 22 }}><CloseX /></button>
                     </div>
                   ))}
                   {filteredAnns.length > 5 && (
                     <button onClick={() => setAnnExpanded((x) => !x)}
-                      style={{ width: "100%", padding: "9px 14px", border: "none", cursor: "pointer", textAlign: "left", background: "transparent", fontFamily: "'JetBrains Mono',monospace", fontSize: 9, letterSpacing: ".14em", color: "#14504A" }}>
+                      style={{ width: "100%", padding: "9px 14px", border: "none", cursor: "pointer", textAlign: "left", background: "transparent", fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: ".04em", color: "#14504A" }}>
                       {annExpanded ? "SHOW LESS ↑" : `VIEW MORE (${filteredAnns.length - 5}) ↓`}
                     </button>
                   )}
@@ -997,21 +1030,60 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
         {layersOpen && (
           <div style={{ width: 200, borderRadius: 16, overflow: "hidden", background: "rgba(255,253,248,.96)", border: "1px solid rgba(11,15,14,.14)", backdropFilter: "blur(10px)", boxShadow: "0 16px 38px -22px rgba(11,15,14,.8)" }}>
             <div style={{ padding: "11px 14px 10px", borderBottom: "1px solid rgba(11,15,14,.1)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10, letterSpacing: ".16em", color: "#5A635F" }}>BASEMAP</span>
+              <span style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "#3E4744" }}>BASEMAP</span>
               <button onClick={() => setLayersOpen(false)} style={closeBtn}><CloseX /></button>
             </div>
             {(["canvas", "imagery", "topo"] as BaseKey[]).map((k) => (
               <button key={k} onClick={() => { setBase(k); setLayersOpen(false); }}
                 style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "12px 14px", border: "none", borderBottom: "1px solid rgba(11,15,14,.07)", cursor: "pointer", textAlign: "left", background: base === k ? "rgba(201,242,77,.28)" : "transparent", transition: "background .15s" }}>
                 <span style={{ fontSize: 13, fontWeight: 500, textTransform: "capitalize" }}>{k}</span>
-                {base === k && <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 11, color: "#0B0F0E" }}>✓</span>}
+                {base === k && <span style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 12, fontWeight: 700, color: "#0B0F0E" }}>✓</span>}
               </button>
             ))}
           </div>
         )}
 
-        {/* ── Zoom controls (below layers) ─────────────────────────────────── */}
+        {/* ── Zoom controls & North orientation (below layers) ────────────────── */}
         <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+          {/* North compass button */}
+          <button
+            onClick={resetToAllStops}
+            title="Orient North & Reset Map"
+            aria-label="Orient North & Reset Map"
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 12,
+              background: "#FFFDF8",
+              border: "1.5px solid #0B0F0E",
+              display: "grid",
+              placeItems: "center",
+              boxShadow: "0 8px 20px -14px rgba(11,15,14,.7)",
+              cursor: "pointer",
+              transition: "transform .15s, background .15s",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "#C9F24D"; e.currentTarget.style.transform = "scale(1.05)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "#FFFDF8"; e.currentTarget.style.transform = "scale(1)"; }}
+          >
+            <svg width="28" height="28" viewBox="0 0 36 36">
+              {/* N label outside circle in red color */}
+              <text x="18" y="6.5" textAnchor="middle" fill="#EF4444" fontSize="7" fontWeight="900" fontFamily="'Instrument Sans',sans-serif">N</text>
+
+              {/* Main circle */}
+              <circle cx="18" cy="20" r="12" fill="none" stroke="rgba(11,15,14,.18)" strokeWidth="1.5" />
+
+              {/* Tick marks inside the main circle */}
+              <line x1="18" y1="9.5" x2="18" y2="12.5" stroke="#EF4444" strokeWidth="1.5" strokeLinecap="round" />
+              <line x1="18" y1="30.5" x2="18" y2="27.5" stroke="rgba(11,15,14,.3)" strokeWidth="1.5" strokeLinecap="round" />
+              <line x1="7.5" y1="20" x2="10.5" y2="20" stroke="rgba(11,15,14,.3)" strokeWidth="1.5" strokeLinecap="round" />
+              <line x1="28.5" y1="20" x2="25.5" y2="20" stroke="rgba(11,15,14,.3)" strokeWidth="1.5" strokeLinecap="round" />
+
+              {/* Needles without center small circle */}
+              <polygon points="18,9.5 15,20 21,20" fill="#EF4444" stroke="#DC2626" strokeWidth="0.5" />
+              <polygon points="18,30.5 15,20 21,20" fill="#1E293B" />
+            </svg>
+          </button>
+
           {[{ label: "+", action: () => mapRef.current?.zoomIn() }, { label: "−", action: () => mapRef.current?.zoomOut() }].map(({ label, action }) => (
             <button key={label} onClick={action} style={{ width: 40, height: 40, borderRadius: 12, background: "#FFFDF8", border: "1px solid rgba(11,15,14,.2)", fontSize: 17, fontWeight: 500, cursor: "pointer", boxShadow: "0 8px 20px -14px rgba(11,15,14,.7)", transition: "background .2s, border .2s, color .2s", color: "#3E4744", display: "grid", placeItems: "center" }}
               onMouseEnter={(e) => { e.currentTarget.style.background = "#C9F24D"; e.currentTarget.style.color = "#0B0F0E"; e.currentTarget.style.borderColor = "#0B0F0E"; }}
@@ -1043,10 +1115,10 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
                 <div style={{ position: "absolute", left: 0, top: 4, height: 3, width: barPx / 2, background: "#FFFDF8" }} />
                 <div style={{ position: "absolute", left: barPx / 2, top: 4, height: 3, width: barPx / 2, background: "rgba(255,253,248,.3)" }} />
               </div>
-              <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10, letterSpacing: ".12em", color: "rgba(255,253,248,.85)", whiteSpace: "nowrap" }}>{label}</span>
+              <span style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 600, letterSpacing: ".04em", color: "rgba(255,253,248,.9)", whiteSpace: "nowrap" }}>{label}</span>
             </div>
             <div style={{ width: 1, height: 14, background: "rgba(255,253,248,.2)", flexShrink: 0 }} />
-            <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10, letterSpacing: ".1em", color: mouseCoords ? "#FFFDF8" : "rgba(255,253,248,.5)", whiteSpace: "nowrap" }}>
+            <span style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 500, letterSpacing: ".02em", color: mouseCoords ? "#FFFDF8" : "rgba(255,253,248,.6)", whiteSpace: "nowrap" }}>
               {mouseCoords ? coordText : "— move cursor —"}
             </span>
           </div>

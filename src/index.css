@@ -14,10 +14,36 @@ a { color: #0B0F0E; text-decoration: none; }
 a:hover { color: #14504A; }
 button { font: inherit; cursor: pointer; }
 
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(11,15,14,.18); border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(11,15,14,.32); }
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(11, 15, 14, 0.38) rgba(11, 15, 14, 0.05);
+}
+
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-track { background: rgba(11, 15, 14, 0.04); border-radius: 99px; }
+::-webkit-scrollbar-thumb { background: rgba(11, 15, 14, 0.35); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #14504A; }
+
+.gp-popover-scroll {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(11, 15, 14, 0.42) rgba(11, 15, 14, 0.06);
+}
+.gp-popover-scroll::-webkit-scrollbar {
+  width: 7px;
+}
+.gp-popover-scroll::-webkit-scrollbar-track {
+  background: rgba(11, 15, 14, 0.06);
+  border-radius: 99px;
+  margin: 4px 0;
+}
+.gp-popover-scroll::-webkit-scrollbar-thumb {
+  background: rgba(11, 15, 14, 0.4);
+  border-radius: 99px;
+}
+.gp-popover-scroll::-webkit-scrollbar-thumb:hover {
+  background: #14504A;
+}
 
 @keyframes gp-dash { to { stroke-dashoffset: -28; } }
 @keyframes gp-rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
@@ -79,10 +105,14 @@ button { font: inherit; cursor: pointer; }
 
 .gp-pin.is-active {
   background: #C9F24D;
-  border: 2px solid #0B0F0E;
-  box-shadow: 0 0 0 4px rgba(201, 242, 77, 0.5), 0 3px 12px rgba(0, 0, 0, 0.7);
-  transform: scale(1.35);
+  border: 2px solid #EF4444;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45), 0 0 0 1.5px rgba(255, 255, 255, 0.65);
+  transform: none !important;
   z-index: 1001 !important;
+}
+
+.gp-pin.is-active:hover {
+  transform: none !important;
 }
 
 .gp-pin.is-active::after {
@@ -90,16 +120,7 @@ button { font: inherit; cursor: pointer; }
 }
 
 .gp-pin.is-active::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 140%;
-  height: 140%;
-  border-radius: 9999px;
-  background: rgba(201, 242, 77, 0.45);
-  animation: gp-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
-  pointer-events: none;
+  display: none;
 }
 
 .gp-map-tooltip {

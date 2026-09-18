@@ -19,9 +19,7 @@ interface LocalAnnotation {
   refLink?: string;
   refLabel?: string;
   tags?: string[];
-  category?: string;
   color?: string;
-  priority?: "Low" | "Medium" | "High";
 }
 
 interface AnnForm {
@@ -30,16 +28,14 @@ interface AnnForm {
   refLink: string;
   refLabel: string;
   tags: string;
-  category: string;
   color: string;
-  priority: "Low" | "Medium" | "High";
 }
 
 interface Props {
   pathId: string;
   stopId: string;
   onNav: (v: View) => void;
-  onSelectStop: (pathId: string, stopId: string) => void;
+  onSelectStop: (pathId: string, stopId: string, yaw?: number, pitch?: number) => void;
   initialYaw?: number;
   initialPitch?: number;
   initialAnnId?: string;
@@ -129,9 +125,7 @@ function loadAnns(pathId: string, stopId: string, dbAnns: any[]): LocalAnnotatio
     refLink: a.refLink || "",
     refLabel: a.refLabel || "",
     tags: a.tags || [],
-    category: a.category || "Geology",
     color: a.color || "#C9F24D",
-    priority: a.priority || "Medium",
   }));
 }
 
@@ -191,7 +185,8 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
   const [draftPts, setDraftPts] = useState<SpherePoint[]>([]);
   const [cursorSphere, setCursorSphere] = useState<SpherePoint | null>(null);
   const [formVisible, setFormVisible] = useState(false);
-  const [annForm, setAnnForm] = useState<AnnForm>({ title: "", note: "", refLink: "", refLabel: "", tags: "", category: "Geology", color: "#C9F24D", priority: "Medium" });
+  const [editingAnnId, setEditingAnnId] = useState<string | null>(null);
+  const [annForm, setAnnForm] = useState<AnnForm>({ title: "", note: "", refLink: "", refLabel: "", tags: "", color: "#C9F24D" });
 
   const curPath = paths.find((p) => p.id === pathId) || paths[0];
   const stopIdx = curPath.stops.findIndex((s) => s.id === stopId);
@@ -321,6 +316,18 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
     };
   }, [panoramaUrl, previewUrl, pathId, stopId]);
 
+  // Sync view orientation when initialYaw/initialPitch changes
+  useEffect(() => {
+    const v = pannellumRef.current;
+    if (!v) return;
+    if (initialYaw !== undefined) {
+      try { (v as any).setYaw(initialYaw); } catch { /* */ }
+    }
+    if (initialPitch !== undefined) {
+      try { (v as any).setPitch(initialPitch); } catch { /* */ }
+    }
+  }, [initialYaw, initialPitch]);
+
   // Always keep auto-rotation stopped
   useEffect(() => {
     const v = pannellumRef.current;
@@ -368,28 +375,90 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
     if (draftPts.length >= min) setFormVisible(true);
   }
 
+  function startEditAnn(ann: LocalAnnotation) {
+    setEditingAnnId(ann.id);
+    setAddAnnKind(ann.kind);
+    const existingPts = ann.pts || ann.points || [];
+    setDraftPts(existingPts);
+    setAnnForm({
+      title: ann.title || "",
+      note: ann.note || ann.body || "",
+      refLink: ann.refLink || "",
+      refLabel: ann.refLabel || "",
+      tags: (ann.tags || []).join(", "),
+      color: ann.color || "#C9F24D",
+    });
+    setFormVisible(true);
+    setAddAnnMode(false);
+    setOpenAnnId(null);
+    setAnnListOpen(false);
+  }
+
+  function handleDeleteAnn(annId: string) {
+    if (window.confirm("Are you sure you want to delete this annotation?")) {
+      const next = localAnns.filter((a) => a.id !== annId);
+      setLocalAnns(next);
+      persistAnns(pathId, stopId, next);
+      if (openAnnId === annId) {
+        setOpenAnnId(null);
+      }
+      if (editingAnnId === annId) {
+        resetAddAnn();
+      }
+    }
+  }
+
   function handleSave() {
-    if (!annForm.title.trim() || draftPts.length === 0) return;
-    const ann: LocalAnnotation = {
-      id: Date.now().toString(),
-      kind: addAnnKind,
-      pts: draftPts,
-      points: draftPts,
-      title: annForm.title.trim(),
-      body: annForm.note.trim(),
-      note: annForm.note.trim(),
-      refLink: annForm.refLink.trim(),
-      refLabel: annForm.refLabel.trim(),
-      added: new Date().toISOString().split("T")[0],
-    };
-    const next = [...localAnns, ann];
-    setLocalAnns(next);
-    persistAnns(pathId, stopId, next);
-    resetAddAnn();
+    if (!annForm.title.trim()) return;
+    if (editingAnnId) {
+      const next = localAnns.map((a) => {
+        if (a.id === editingAnnId) {
+          return {
+            ...a,
+            pts: draftPts.length > 0 ? draftPts : a.pts,
+            points: draftPts.length > 0 ? draftPts : a.points,
+            title: annForm.title.trim(),
+            body: annForm.note.trim(),
+            note: annForm.note.trim(),
+            refLink: annForm.refLink.trim(),
+            refLabel: annForm.refLabel.trim(),
+            tags: annForm.tags.split(",").map((t) => t.trim()).filter(Boolean),
+            color: annForm.color,
+          };
+        }
+        return a;
+      });
+      setLocalAnns(next);
+      persistAnns(pathId, stopId, next);
+      setOpenAnnId(editingAnnId);
+      resetAddAnn();
+    } else {
+      if (draftPts.length === 0) return;
+      const ann: LocalAnnotation = {
+        id: Date.now().toString(),
+        kind: addAnnKind,
+        pts: draftPts,
+        points: draftPts,
+        title: annForm.title.trim(),
+        body: annForm.note.trim(),
+        note: annForm.note.trim(),
+        refLink: annForm.refLink.trim(),
+        refLabel: annForm.refLabel.trim(),
+        tags: annForm.tags.split(",").map((t) => t.trim()).filter(Boolean),
+        color: annForm.color,
+        added: new Date().toISOString().split("T")[0],
+      };
+      const next = [...localAnns, ann];
+      setLocalAnns(next);
+      persistAnns(pathId, stopId, next);
+      setOpenAnnId(ann.id);
+      resetAddAnn();
+    }
   }
 
   function resetAddAnn() {
     setAddAnnMode(false);
+    setEditingAnnId(null);
     setDraftPts([]);
     setFormVisible(false);
     setCursorSphere(null);
@@ -399,19 +468,15 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
       refLink: "",
       refLabel: "",
       tags: "",
-      category: "Geology",
       color: "#C9F24D",
-      priority: "Medium",
     });
   }
 
   // ── navigation ────────────────────────────────────────────────────────────
 
-  function goToStop(sid: string) {
-    onSelectStop(curPath.id, sid);
+  function goToStop(sid: string, targetYaw?: number, targetPitch?: number) {
     setOpenAnnId(null);
-    // Update URL hash
-    window.history.pushState(null, "", `#/stop/${curPath.id}/${sid}`);
+    onSelectStop(curPath.id, sid, targetYaw, targetPitch);
   }
 
   function shareView() {
@@ -693,21 +758,125 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
               {localAnns.length === 0 && (
                 <div style={{ padding: "24px 18px", textAlign: "center", color: "#5A635F", fontSize: 13 }}>No annotations yet.</div>
               )}
-              {localAnns.map((a) => (
-                <button key={a.id} onClick={() => { setOpenAnnId(a.id === openAnnId ? null : a.id); setAnnListOpen(false); }}
-                  style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "13px 18px", border: "none", borderBottom: "1px solid rgba(11,15,14,.07)", cursor: "pointer", textAlign: "left", background: a.id === openAnnId ? "rgba(201,242,77,.28)" : "transparent", transition: "background .15s", fontFamily: "inherit" }}>
-                  <span style={{ display: "flex", alignItems: "center", gap: 11, minWidth: 0 }}>
-                    <span style={{ width: 26, height: 26, borderRadius: a.kind === "point" ? 999 : a.kind === "polygon" ? 7 : 3, border: "1.5px solid #0B0F0E", background: a.kind === "point" ? "#C9F24D" : a.kind === "polygon" ? "rgba(201,242,77,.45)" : "#FFFDF8", display: "grid", placeItems: "center", flexShrink: 0, fontFamily: "'JetBrains Mono',monospace", fontSize: 10 }}>
-                      {a.kind === "point" ? "•" : a.kind === "line" ? "∕" : "◇"}
-                    </span>
-                    <span style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
-                      <span style={{ fontSize: 14, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 180 }}>{a.title}</span>
-                      <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10, letterSpacing: ".1em", color: "#5A635F" }}>{a.kind.toUpperCase()}{a.added ? ` · ${a.added}` : ""}</span>
-                    </span>
-                  </span>
-                  <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 11, color: "#5A635F" }}>↗</span>
-                </button>
-              ))}
+              {localAnns.map((a) => {
+                const firstPt = a.pts?.[0] || a.points?.[0];
+                return (
+                  <div
+                    key={a.id}
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 8,
+                      padding: "10px 14px 10px 18px",
+                      borderBottom: "1px solid rgba(11,15,14,.07)",
+                      background: a.id === openAnnId ? "rgba(201,242,77,.28)" : "transparent",
+                      transition: "background .15s",
+                    }}
+                  >
+                    <button
+                      onClick={() => {
+                        setOpenAnnId(a.id === openAnnId ? null : a.id);
+                        setAnnListOpen(false);
+                        if (firstPt && pannellumRef.current) {
+                          try {
+                            (pannellumRef.current as any).lookAt(firstPt.pitch, firstPt.yaw, 80, 800);
+                          } catch { /* */ }
+                        }
+                      }}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        padding: 0,
+                        cursor: "pointer",
+                        textAlign: "left",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 11,
+                        flex: 1,
+                        minWidth: 0,
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      <span style={{ width: 26, height: 26, borderRadius: a.kind === "point" ? 999 : a.kind === "polygon" ? 7 : 3, border: "1.5px solid #0B0F0E", background: a.kind === "point" ? "#C9F24D" : a.kind === "polygon" ? "rgba(201,242,77,.45)" : "#FFFDF8", display: "grid", placeItems: "center", flexShrink: 0, fontFamily: "'JetBrains Mono',monospace", fontSize: 10 }}>
+                        {a.kind === "point" ? "•" : a.kind === "line" ? "∕" : "◇"}
+                      </span>
+                      <span style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+                        <span style={{ fontSize: 14, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.title}</span>
+                        <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10, letterSpacing: ".1em", color: "#5A635F" }}>{a.kind.toUpperCase()}{a.added ? ` · ${a.added}` : ""}</span>
+                      </span>
+                    </button>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                      <button
+                        title="Edit annotation"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          startEditAnn(a);
+                        }}
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: 8,
+                          border: "1px solid rgba(11,15,14,.16)",
+                          background: "#FFFDF8",
+                          cursor: "pointer",
+                          display: "grid",
+                          placeItems: "center",
+                          color: "#0B0F0E",
+                        }}
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                      </button>
+                      <button
+                        title="Delete annotation"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteAnn(a.id);
+                        }}
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: 8,
+                          border: "1px solid rgba(231,29,54,.3)",
+                          background: "#FFFDF8",
+                          cursor: "pointer",
+                          display: "grid",
+                          placeItems: "center",
+                          color: "#E71D36",
+                        }}
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ flexShrink: 0, padding: "10px 14px", borderTop: "1px solid rgba(11,15,14,.1)" }}>
+              <button
+                onClick={() => {
+                  setAddAnnMode(true);
+                  setAnnListOpen(false);
+                }}
+                style={{
+                  width: "100%",
+                  padding: "9px 0",
+                  borderRadius: 10,
+                  background: "#C9F24D",
+                  border: "1px solid #0B0F0E",
+                  fontWeight: 600,
+                  fontSize: 12,
+                  cursor: "pointer",
+                  fontFamily: "'Instrument Sans',sans-serif",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                }}
+              >
+                <span>+</span> Add New Annotation
+              </button>
             </div>
           </div>
         )}
@@ -725,7 +894,7 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
               {curPath.stops.map((s, i) => {
                 const on = i === stopIdx;
                 return (
-                  <button key={s.id} onClick={() => { onSelectStop(curPath.id, s.id); setPathPanelOpen(false); setOpenAnnId(null); }}
+                  <button key={s.id} onClick={() => { goToStop(s.id); setPathPanelOpen(false); }}
                     style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", border: "1px solid", borderColor: on ? "#C9F24D" : "rgba(255,253,248,.14)", borderRadius: 12, background: on ? "rgba(201,242,77,.15)" : "rgba(255,253,248,.07)", cursor: "pointer", textAlign: "left", color: "#F4F2ED", fontFamily: "inherit", transition: "background .15s" }}>
                     <span style={{ width: 24, height: 24, borderRadius: 999, border: "2px solid", borderColor: on ? "#C9F24D" : "rgba(255,253,248,.4)", background: on ? "#C9F24D" : "transparent", color: on ? "#0B0F0E" : "rgba(255,253,248,.6)", display: "grid", placeItems: "center", fontFamily: "'JetBrains Mono',monospace", fontSize: 10, flexShrink: 0 }}>
                       {i + 1}
@@ -884,8 +1053,22 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
       {/* ── Annotation detail card ─────────────────────────────────────────── */}
       {openAnn && !formVisible && (
         <div style={{ position: "absolute", right: "clamp(12px,2vw,24px)", top: "clamp(12px,2vw,24px)", zIndex: 25, width: "min(310px,calc(100vw - 32px))", maxHeight: "calc(100% - 116px)", display: "flex", flexDirection: "column", borderRadius: 18, overflow: "hidden", background: "#FFFDF8", border: "1px solid #0B0F0E", boxShadow: "0 24px 56px -26px rgba(11,15,14,.95)" }}>
-          <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, padding: "10px 12px 10px 14px", background: openAnn.color || "#C9F24D", borderBottom: "1px solid #0B0F0E" }}>
+          <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 6, padding: "10px 12px 10px 14px", background: openAnn.color || "#C9F24D", borderBottom: "1px solid #0B0F0E" }}>
             <span style={{ flex: 1, minWidth: 0, fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 600, fontSize: 15, letterSpacing: "-.015em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{openAnn.title}</span>
+            <button
+              title="Edit annotation"
+              onClick={() => startEditAnn(openAnn)}
+              style={{ width: 28, height: 28, borderRadius: 999, border: "1px solid #0B0F0E", background: "rgba(255,253,248,.3)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0, color: "#0B0F0E" }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            </button>
+            <button
+              title="Delete annotation"
+              onClick={() => handleDeleteAnn(openAnn.id)}
+              style={{ width: 28, height: 28, borderRadius: 999, border: "1px solid #0B0F0E", background: "rgba(255,253,248,.3)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0, color: "#E71D36" }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
             <button
               title="Share annotation"
               onClick={() => shareAnnotation(openAnn.id)}
@@ -907,8 +1090,6 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
             <div style={{ display: "flex", flexWrap: "wrap", gap: 16, paddingTop: (openAnn.note || openAnn.body) ? 14 : 0, borderTop: (openAnn.note || openAnn.body) ? "1px solid rgba(11,15,14,.1)" : "none" }}>
               {[
                 { k: "KIND", v: openAnn.kind.toUpperCase() },
-                { k: "CATEGORY", v: openAnn.category || "—" },
-                { k: "PRIORITY", v: openAnn.priority || "—" },
                 { k: "ADDED", v: openAnn.added || "—" },
               ].map(({ k, v }) => (
                 <div key={k}>
@@ -930,6 +1111,22 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
               </a>
             )}
           </div>
+          <div style={{ flexShrink: 0, padding: "12px 18px", borderTop: "1px solid rgba(11,15,14,.08)", display: "flex", gap: 8 }}>
+            <button
+              onClick={() => startEditAnn(openAnn)}
+              style={{ flex: 1, padding: "9px 0", borderRadius: 10, background: "#C9F24D", border: "1px solid #0B0F0E", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "'Instrument Sans',sans-serif", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              Edit
+            </button>
+            <button
+              onClick={() => handleDeleteAnn(openAnn.id)}
+              style={{ padding: "9px 14px", borderRadius: 10, background: "#FFFDF8", border: "1px solid rgba(231,29,54,.4)", color: "#E71D36", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "'Instrument Sans',sans-serif", display: "flex", alignItems: "center", gap: 5 }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              Delete
+            </button>
+          </div>
         </div>
       )}
 
@@ -940,7 +1137,9 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
             <svg width="14" height="5" viewBox="0 0 14 5" fill="none" style={{ flexShrink: 0 }}>
               <circle cx="1.5" cy="2.5" r="1.5" fill="#0B0F0E" /><circle cx="7" cy="2.5" r="1.5" fill="#0B0F0E" /><circle cx="12.5" cy="2.5" r="1.5" fill="#0B0F0E" />
             </svg>
-            <span style={{ flex: 1, fontFamily: "'JetBrains Mono',monospace", fontSize: 10, letterSpacing: ".16em", color: "#0B0F0E", fontWeight: 700 }}>NEW ANNOTATION</span>
+            <span style={{ flex: 1, fontFamily: "'JetBrains Mono',monospace", fontSize: 10, letterSpacing: ".16em", color: "#0B0F0E", fontWeight: 700 }}>
+              {editingAnnId ? "EDIT ANNOTATION" : "NEW ANNOTATION"}
+            </span>
             <button onClick={resetAddAnn} style={{ width: 28, height: 28, borderRadius: 999, border: "1px solid #0B0F0E", background: "#C9F24D", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0, boxShadow: "inset 0 0 0 1.5px rgba(11,15,14,.25)" }}>
               <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 2l8 8M10 2L2 10" stroke="#0B0F0E" strokeWidth="1.8" strokeLinecap="round" /></svg>
             </button>
@@ -960,26 +1159,6 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
 
             <label style={{ display: "block", fontSize: 14, fontWeight: 600, margin: "16px 0 6px" }}>Tags (comma separated)</label>
             <input value={annForm.tags} onChange={(e) => setAnnForm((f) => ({ ...f, tags: e.target.value }))} placeholder="fault, sedimentary, fossil" style={inputStyle} />
-
-            <div style={{ display: "flex", gap: 12, margin: "16px 0 6px" }}>
-              <div style={{ flex: 1 }}>
-                <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 6 }}>Category</label>
-                <select value={annForm.category} onChange={(e) => setAnnForm((f) => ({ ...f, category: e.target.value }))} style={inputStyle}>
-                  <option>Geology</option>
-                  <option>Infrastructure</option>
-                  <option>Biology</option>
-                  <option>Other</option>
-                </select>
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 6 }}>Priority</label>
-                <select value={annForm.priority} onChange={(e) => setAnnForm((f) => ({ ...f, priority: e.target.value as "Low"|"Medium"|"High" }))} style={inputStyle}>
-                  <option>Low</option>
-                  <option>Medium</option>
-                  <option>High</option>
-                </select>
-              </div>
-            </div>
 
             <label style={{ display: "block", fontSize: 14, fontWeight: 600, margin: "16px 0 6px" }}>Color</label>
             <div style={{ display: "flex", gap: 8 }}>
@@ -1024,12 +1203,31 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
           </div>
 
           <div style={{ flexShrink: 0, padding: "12px 18px 18px" }}>
-            <button onClick={handleSave}
-              style={{ width: "100%", padding: "14px 0", borderRadius: 12, border: "1px solid rgba(11,15,14,.2)", background: "#FFFDF8", fontFamily: "'Instrument Sans',sans-serif", fontSize: 15, fontWeight: 600, cursor: "pointer", color: "#0B0F0E", transition: "background .15s, border-color .15s" }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "#C9F24D"; e.currentTarget.style.borderColor = "#0B0F0E"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "#FFFDF8"; e.currentTarget.style.borderColor = "rgba(11,15,14,.2)"; }}>
-              Save annotation
-            </button>
+            {editingAnnId ? (
+              <div style={{ display: "flex", gap: 10 }}>
+                <button
+                  onClick={handleSave}
+                  style={{ flex: 1, padding: "13px 0", borderRadius: 12, border: "1px solid #0B0F0E", background: "#C9F24D", fontFamily: "'Instrument Sans',sans-serif", fontSize: 14, fontWeight: 600, cursor: "pointer", color: "#0B0F0E" }}
+                >
+                  Update Annotation
+                </button>
+                <button
+                  onClick={() => {
+                    if (editingAnnId) handleDeleteAnn(editingAnnId);
+                  }}
+                  style={{ padding: "13px 16px", borderRadius: 12, border: "1px solid rgba(231,29,54,.4)", background: "#FFFDF8", fontFamily: "'Instrument Sans',sans-serif", fontSize: 14, fontWeight: 600, cursor: "pointer", color: "#E71D36" }}
+                >
+                  Delete
+                </button>
+              </div>
+            ) : (
+              <button onClick={handleSave}
+                style={{ width: "100%", padding: "14px 0", borderRadius: 12, border: "1px solid rgba(11,15,14,.2)", background: "#FFFDF8", fontFamily: "'Instrument Sans',sans-serif", fontSize: 15, fontWeight: 600, cursor: "pointer", color: "#0B0F0E", transition: "background .15s, border-color .15s" }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "#C9F24D"; e.currentTarget.style.borderColor = "#0B0F0E"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "#FFFDF8"; e.currentTarget.style.borderColor = "rgba(11,15,14,.2)"; }}>
+                Save annotation
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -1125,7 +1323,31 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
         return (
           <button
             key={arrow.stopId}
-            onClick={() => goToStop(arrow.stopId)}
+            onClick={() => {
+              let targetYaw: number | undefined;
+              const targetIdx = curPath.stops.findIndex((s) => s.id === arrow.stopId);
+              if (targetIdx >= 0) {
+                const targetStop = curPath.stops[targetIdx];
+                if (arrow.isNext) {
+                  // Forward: look ahead towards the next stop in sequence
+                  if (targetIdx < curPath.stops.length - 1) {
+                    const nextNext = curPath.stops[targetIdx + 1];
+                    targetYaw = bearingBetween(targetStop.ll[0], targetStop.ll[1], nextNext.ll[0], nextNext.ll[1]);
+                  } else {
+                    targetYaw = bearingBetween(curStop.ll[0], curStop.ll[1], targetStop.ll[0], targetStop.ll[1]);
+                  }
+                } else {
+                  // Backward: look back towards the previous stop in sequence
+                  if (targetIdx > 0) {
+                    const prevPrev = curPath.stops[targetIdx - 1];
+                    targetYaw = bearingBetween(targetStop.ll[0], targetStop.ll[1], prevPrev.ll[0], prevPrev.ll[1]);
+                  } else {
+                    targetYaw = bearingBetween(curStop.ll[0], curStop.ll[1], targetStop.ll[0], targetStop.ll[1]);
+                  }
+                }
+              }
+              goToStop(arrow.stopId, targetYaw, 6);
+            }}
             title={arrow.title}
             style={{
               position: "absolute",

@@ -34,11 +34,22 @@ function parseHash(hash: string): RouteState {
     const annId = segments[3] === "ann" && segments[4] ? segments[4] : undefined;
     return { view: "stop", pathId: segments[1], stopId: segments[2], yaw, pitch, annId };
   }
+  if (segments[0] === "stop" && segments[1]) {
+    const defaultStop = segments[1] === "pt00001" ? "sp00001" : "sp00009";
+    return { view: "stop", pathId: segments[1], stopId: defaultStop, yaw, pitch };
+  }
+  if (segments[0] === "stop") {
+    return { view: "stop", pathId: "pt00001", stopId: "sp00001", yaw, pitch };
+  }
   // #/map/{pathId}/{stopId}
   if (segments[0] === "map" && segments[1] && segments[2]) {
     return { view: "map", pathId: segments[1], stopId: segments[2] };
   }
-  if (segments[0] === "map") return { view: "map", pathId: "sp00009-path", stopId: "sp00009" };
+  if (segments[0] === "map" && segments[1]) {
+    const defaultStop = segments[1] === "pt00001" ? "sp00001" : "sp00009";
+    return { view: "map", pathId: segments[1], stopId: defaultStop };
+  }
+  if (segments[0] === "map") return { view: "map", pathId: "", stopId: "" };
   if (segments[0] === "library") return { view: "library", pathId: "sp00009-path", stopId: "sp00009" };
   if (segments[0] === "signup") return { view: "signup", pathId: "sp00009-path", stopId: "sp00009" };
   if (segments[0] === "about") return { view: "about", pathId: "sp00009-path", stopId: "sp00009" };
@@ -69,8 +80,8 @@ function buildHash(view: View, pathId?: string, stopId?: string, extra?: { yaw?:
 export default function App() {
   const initial = parseHash(window.location.hash);
   const [view, setView] = useState<View>(initial.view);
-  const [selectedPathId, setSelectedPathId] = useState(initial.pathId);
-  const [selectedStopId, setSelectedStopId] = useState(initial.stopId);
+  const [selectedPathId, setSelectedPathId] = useState<string | undefined>(initial.pathId);
+  const [selectedStopId, setSelectedStopId] = useState<string | undefined>(initial.stopId);
   const [initialYaw, setInitialYaw] = useState<number | undefined>(initial.yaw);
   const [initialPitch, setInitialPitch] = useState<number | undefined>(initial.pitch);
   const [initialAnnId, setInitialAnnId] = useState<string | undefined>(initial.annId);
@@ -98,9 +109,18 @@ export default function App() {
     return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
 
-  function handleSelectStop(pathId: string, stopId: string) {
+  function handleSelectStop(pathId: string, stopId: string, yaw?: number, pitch?: number) {
     setSelectedPathId(pathId);
     setSelectedStopId(stopId);
+    setInitialYaw(yaw);
+    setInitialPitch(pitch);
+    setInitialAnnId(undefined);
+    if (view === "stop") {
+      const hash = buildHash("stop", pathId, stopId, { yaw, pitch });
+      if (window.location.hash !== hash) {
+        window.location.hash = hash;
+      }
+    }
   }
 
   function handleNav(v: View) {
@@ -108,7 +128,15 @@ export default function App() {
     setInitialYaw(undefined);
     setInitialPitch(undefined);
     setInitialAnnId(undefined);
-    updateHash(v);
+    if (v === "map") {
+      setSelectedPathId(undefined);
+      setSelectedStopId(undefined);
+      if (window.location.hash !== "#/map") {
+        window.history.pushState(null, "", "#/map");
+      }
+    } else {
+      updateHash(v);
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -149,8 +177,8 @@ export default function App() {
       {view === "privacy" && <Privacy onNav={handleNav} />}
       {view === "stop" && (
         <StopViewer
-          pathId={selectedPathId}
-          stopId={selectedStopId}
+          pathId={selectedPathId || "pt00001"}
+          stopId={selectedStopId || "sp00001"}
           onNav={handleNav}
           onSelectStop={handleSelectStop}
           initialYaw={initialYaw}

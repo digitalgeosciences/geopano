@@ -479,13 +479,13 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
   const [base, setBase] = useState<BaseKey>("imagery");
   const [layersOpen, setLayersOpen] = useState(false);
 
-  const initP = selectedPathId ? paths.findIndex((p) => p.id === selectedPathId) : 0;
+  const initP = selectedPathId ? paths.findIndex((p) => p.id === selectedPathId) : -1;
   const initPathIdx = initP >= 0 ? initP : 0;
   const [pathIdx, setPathIdx] = useState(initPathIdx);
 
-  const initS = selectedStopId && paths[initPathIdx] ? paths[initPathIdx].stops.findIndex((s) => s.id === selectedStopId) : 0;
+  const initS = selectedStopId && initP >= 0 && paths[initP] ? paths[initP].stops.findIndex((s) => s.id === selectedStopId) : -1;
   const [stopIdx, setStopIdx] = useState(initS >= 0 ? initS : 0);
-  const [panel, setPanel] = useState<"paths" | "stop" | "annotations" | "none">("paths");
+  const [panel, setPanel] = useState<"paths" | "stop" | "annotations" | "none">("none");
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [pickingMode, setPickingMode] = useState(false);
   const [pickedCoords, setPickedCoords] = useState<{ lat: string; lng: string } | null>(null);
@@ -505,6 +505,29 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
 
   const curPath = paths[pathIdx] || paths[0];
   const curStop = curPath.stops[Math.min(stopIdx, curPath.stops.length - 1)] || curPath.stops[0];
+
+  const pathIdxRef = useRef(pathIdx);
+  const stopIdxRef = useRef(stopIdx);
+  const queryRef = useRef(query);
+  pathIdxRef.current = pathIdx;
+  stopIdxRef.current = stopIdx;
+  queryRef.current = query;
+
+  // Keep state in sync if parent selectedPathId / selectedStopId changes
+  useEffect(() => {
+    if (selectedPathId) {
+      const pi = paths.findIndex((p) => p.id === selectedPathId);
+      if (pi >= 0) {
+        setPathIdx(pi);
+        if (selectedStopId) {
+          const si = paths[pi].stops.findIndex((s) => s.id === selectedStopId);
+          if (si >= 0) setStopIdx(si);
+        }
+      }
+    } else if (mapRef.current) {
+      resetToAllStops();
+    }
+  }, [selectedPathId, selectedStopId, paths]);
 
   // popover shared style
   const popoverStyle = (topOffset = 0): React.CSSProperties =>
@@ -550,15 +573,6 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
       if (!hit) return;
       const isSel = pi === selPath;
 
-      if (p.stops.length > 1) {
-        L.polyline(p.stops.map((s) => s.ll as [number, number]), {
-          color: isSel ? "#0B0F0E" : "#5A635F",
-          weight: isSel ? 2.5 : 1.5,
-          opacity: isSel ? 0.9 : 0.4,
-          dashArray: "6 6",
-        }).addTo(lg);
-      }
-
       p.stops.forEach((s, si) => {
         const active = isSel && si === selStop;
         const visited = isSel && si < selStop;
@@ -571,7 +585,7 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
             className: "gp-pin-wrapper",
             iconSize: [markerSize, markerSize],
             iconAnchor: [markerSize / 2, markerSize / 2],
-            html: `<div class="${cls}" style="width:${markerSize}px;height:${markerSize}px;opacity:${isSel ? 1 : 0.75}"></div>`,
+            html: `<div class="${cls}" style="width:${markerSize}px;height:${markerSize}px;opacity:1"></div>`,
           }),
           title: s.title,
           zIndexOffset: active ? 1000 : isSel ? 500 : 0,
@@ -584,8 +598,12 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
         });
 
         marker.addTo(lg).on("click", () => {
+          pathIdxRef.current = pi;
+          stopIdxRef.current = si;
           setPathIdx(pi);
           setStopIdx(si);
+          onSelectStop(p.id, s.id);
+          window.history.replaceState(null, "", `#/map/${p.id}/${s.id}`);
           setPanel("stop");
           map.flyTo(s.ll as [number, number], Math.max(map.getZoom(), 14), { duration: 0.8 });
         });
@@ -604,21 +622,26 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
     applyBase("imagery", map);
     map.on("mousemove", (e: { latlng: { lat: number; lng: number } }) => setMouseCoords({ lat: e.latlng.lat, lng: e.latlng.lng }));
     map.on("mouseout", () => setMouseCoords(null));
-    map.on("zoomend", () => { setZoom(map.getZoom()); drawMap(map, lg, pathIdx, stopIdx, query); });
+    map.on("zoomend", () => {
+      setZoom(map.getZoom());
+      drawMap(map, lg, pathIdxRef.current, stopIdxRef.current, queryRef.current);
+    });
 
-    // Center on initial path/stop
-    const currentPath = paths[initPathIdx];
-    if (currentPath && currentPath.stops.length > 0) {
-      if (currentPath.stops.length === 1) {
-        map.setView(currentPath.stops[0].ll as [number, number], 13);
-      } else {
-        map.fitBounds(currentPath.stops.map((s) => s.ll as [number, number]), { padding: [100, 100], maxZoom: 15 });
+    // Center on initial path/stop if specified, otherwise show all stops
+    const allStops = paths.flatMap((p) => p.stops.map((s) => s.ll as [number, number]));
+    if (selectedPathId && initP >= 0 && selectedStopId && initS >= 0) {
+      const currentPath = paths[initP];
+      const targetStop = currentPath.stops[initS];
+      if (targetStop) {
+        map.setView(targetStop.ll as [number, number], 14);
       }
+    } else if (allStops.length > 0) {
+      map.fitBounds(allStops, { padding: [80, 80], maxZoom: 13 });
     } else {
       map.setView([25, 42], 5);
     }
 
-    drawMap(map, lg, pathIdx, stopIdx, query);
+    drawMap(map, lg, pathIdxRef.current, stopIdxRef.current, queryRef.current);
 
     // Event listeners for coordinate picking
     const handlePickMap = () => { setPickingMode(true); };
@@ -649,11 +672,17 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
   useEffect(() => { if (mapRef.current) applyBase(base, mapRef.current); }, [base]);
 
   function flyToPath(pi: number) {
+    pathIdxRef.current = pi;
+    stopIdxRef.current = 0;
     setPathIdx(pi);
     setStopIdx(0);
     setPanel("stop");
-    if (mapRef.current) {
-      const p = paths[pi];
+    const p = paths[pi];
+    if (p && p.stops[0]) {
+      onSelectStop(p.id, p.stops[0].id);
+      window.history.replaceState(null, "", `#/map/${p.id}/${p.stops[0].id}`);
+    }
+    if (mapRef.current && p) {
       if (p.stops.length === 1) {
         mapRef.current.flyTo(p.stops[0].ll as [number, number], 14, { duration: 1.1 });
       } else if (p.stops.length > 1) {
@@ -666,10 +695,12 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
     if (!mapRef.current) return;
     const allStops = paths.flatMap((p) => p.stops.map((s) => s.ll as [number, number]));
     if (allStops.length > 0) {
-      mapRef.current.flyToBounds(allStops, { padding: [80, 80], maxZoom: 14, duration: 1.2 } as Parameters<typeof mapRef.current.flyToBounds>[1]);
+      mapRef.current.flyToBounds(allStops, { padding: [80, 80], maxZoom: 13, duration: 1.2 } as Parameters<typeof mapRef.current.flyToBounds>[1]);
     } else {
       mapRef.current.setView([25, 42], 5);
     }
+    setPanel("none");
+    window.history.replaceState(null, "", "#/map");
   }
 
   const railBtn = (on: boolean): React.CSSProperties => ({
@@ -827,7 +858,10 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
                     const active = si === stopIdx;
                     return (
                       <button key={s.id} onClick={() => {
+                        stopIdxRef.current = si;
                         setStopIdx(si);
+                        onSelectStop(curPath.id, s.id);
+                        window.history.replaceState(null, "", `#/map/${curPath.id}/${s.id}`);
                         if (mapRef.current) {
                           mapRef.current.flyTo(s.ll as [number, number], Math.max(mapRef.current.getZoom(), 14), { duration: 0.8 });
                         }
@@ -848,16 +882,24 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
                 </div>
                 {/* CTA row */}
                 <div style={{ flexShrink: 0, padding: "10px 14px 14px", display: "flex", gap: 7, borderTop: "1px solid rgba(11,15,14,.08)" }}>
-                  <button onClick={() => { onSelectStop(curPath.id, curStop.id); onNav("stop"); }}
+                  <button onClick={() => {
+                    onSelectStop(curPath.id, curStop.id);
+                    window.location.hash = `#/stop/${curPath.id}/${curStop.id}`;
+                  }}
                     style={{ flex: 1, padding: "9px 0", borderRadius: 999, background: "#C9F24D", border: "1px solid #0B0F0E", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
                     View 360° ↗
                   </button>
                   <button onClick={() => {
                     const nextIdx = Math.min(stopIdx + 1, curPath.stops.length - 1);
+                    stopIdxRef.current = nextIdx;
                     setStopIdx(nextIdx);
                     const nextStop = curPath.stops[nextIdx];
-                    if (nextStop && mapRef.current) {
-                      mapRef.current.flyTo(nextStop.ll as [number, number], Math.max(mapRef.current.getZoom(), 14), { duration: 0.8 });
+                    if (nextStop) {
+                      onSelectStop(curPath.id, nextStop.id);
+                      window.history.replaceState(null, "", `#/map/${curPath.id}/${nextStop.id}`);
+                      if (mapRef.current) {
+                        mapRef.current.flyTo(nextStop.ll as [number, number], Math.max(mapRef.current.getZoom(), 14), { duration: 0.8 });
+                      }
                     }
                   }} disabled={stopIdx >= curPath.stops.length - 1}
                     style={{ padding: "9px 12px", borderRadius: 999, background: "transparent", border: "1px solid rgba(11,15,14,.22)", fontSize: 12, cursor: "pointer", fontFamily: "inherit", opacity: stopIdx >= curPath.stops.length - 1 ? 0.35 : 1 }}>

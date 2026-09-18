@@ -56,7 +56,7 @@ export default function Library({ onNav, onSelectStop }: Props) {
   function handleOpen(item: LibraryItem) {
     if (item.pathId && item.stopId) {
       onSelectStop(item.pathId, item.stopId);
-      onNav("stop");
+      window.location.hash = `#/stop/${item.pathId}/${item.stopId}`;
     }
   }
 

@@ -18,33 +18,30 @@ export default function Landing({ onNav }: Props) {
   const viewerRef = useRef<HTMLDivElement>(null);
   const pannellumRef = useRef<{ destroy: () => void; getYaw: () => number } | null>(null);
   const [yaw, setYaw] = useState(0);
-  const { heroPath } = db;
+
+  // Take the real path and stop data directly from db.paths
+  const realPath = db.paths.find((p) => p.id === "pt00001") || db.paths[0];
+  const firstStop = realPath.stops[0];
 
   useEffect(() => {
     if (!viewerRef.current || !window.pannellum) return;
     if (pannellumRef.current) return;
 
-    const hotSpots = heroPath.hotspots.map((h, i) => ({
-      id: `hero-hs-${i}`,
-      pitch: -5,
-      yaw: (i - 1) * 40,
-      type: "info",
-      text: h.label,
-    }));
-
     const viewer = window.pannellum.viewer(viewerRef.current, {
       type: "equirectangular",
-      panorama: heroPath.panorama,
-      preview: heroPath.panorama.replace('/uploads/', '/uploads/preview/'),
+      panorama: firstStop.panorama,
+      preview: firstStop.panorama.replace('/uploads/', '/uploads/preview/'),
       autoLoad: true,
       showControls: false,
       showZoomCtrl: false,
       showFullscreenCtrl: false,
+      yaw: (firstStop as any).defaultYaw ?? 85,
+      pitch: (firstStop as any).defaultPitch ?? 6,
       autoRotate: -0.4,
       autoRotateInactivityDelay: 2000,
       compass: false,
       hfov: 90,
-      hotSpots,
+      hotSpots: [],
       strings: { loadingLabel: "" },
     });
 
@@ -59,7 +56,7 @@ export default function Landing({ onNav }: Props) {
       try { viewer.destroy(); } catch { /* already destroyed */ }
       pannellumRef.current = null;
     };
-  }, []);
+  }, [firstStop]);
 
   const yawLabel = `YAW ${yaw}°`;
 
@@ -256,7 +253,7 @@ export default function Landing({ onNav }: Props) {
                   display: "block",
                 }}
               />
-              <span style={{ fontSize: 13, fontWeight: 600 }}>{heroPath.name}</span>
+              <span style={{ fontSize: 13, fontWeight: 600 }}>{realPath.name}</span>
               <span
                 style={{
                   fontFamily: "'JetBrains Mono', monospace",
@@ -264,7 +261,7 @@ export default function Landing({ onNav }: Props) {
                   color: "#5A635F",
                 }}
               >
-                {heroPath.stopCount} stops · {heroPath.distanceKm} km
+                {realPath.stops.length} stops · {realPath.city}
               </span>
             </div>
             <span
@@ -281,12 +278,9 @@ export default function Landing({ onNav }: Props) {
           {/* Pannellum 360 viewer */}
           <div style={{ position: "relative", height: "clamp(230px,30vw,320px)", background: "#0B0F0E" }}>
             <div ref={viewerRef} style={{ position: "absolute", inset: 0 }} />
-            {/* Overlays */}
-            <div style={{ position: "absolute", left: 14, bottom: 14, zIndex: 10, padding: "8px 14px", borderRadius: 999, background: "rgba(11,15,14,.6)", backdropFilter: "blur(8px)", color: "#FFFDF8", fontFamily: "'JetBrains Mono', monospace", fontSize: 11, letterSpacing: ".1em", pointerEvents: "none" }}>
-              26.6321° N, 37.9074° E
-            </div>
+            {/* Overlays from real stop in database */}
             <div style={{ position: "absolute", right: 14, bottom: 14, zIndex: 10, padding: "8px 14px", borderRadius: 999, background: "rgba(255,253,248,.92)", color: "#0B0F0E", fontSize: 12, fontWeight: 600, pointerEvents: "none" }}>
-              Quweira Sandstone Base
+              {firstStop.title}
             </div>
             <div style={{ position: "absolute", right: 14, top: 14, zIndex: 10, padding: "6px 12px", borderRadius: 999, background: "rgba(11,15,14,.55)", color: "#FFFDF8", fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: ".14em", pointerEvents: "none" }}>
               DRAG TO LOOK
@@ -311,59 +305,78 @@ export default function Landing({ onNav }: Props) {
                 backgroundSize: "28px 28px",
               }}
             />
-            <svg
-              viewBox="0 0 100 100"
-              preserveAspectRatio="none"
-              style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
-              aria-hidden="true"
-            >
-              <polyline
-                points="12,72 27,44 44,62 60,32 76,56 90,28"
-                fill="none"
-                stroke="#0B0F0E"
-                strokeWidth="1.2"
-                strokeDasharray="5 4"
-                vectorEffect="non-scaling-stroke"
-                style={{ animation: "gp-dash 2.6s linear infinite" }}
-              />
-            </svg>
-            {heroPath.stops.map((s, i) => (
-              <button
-                key={i}
-                onClick={() => onNav("stop")}
-                aria-label={s.title}
-                style={{
-                  position: "absolute",
-                  left: `${s.leftPct}%`,
-                  top: `${s.topPct}%`,
-                  transform: "translate(-50%,-50%)",
-                  width: 28,
-                  height: 28,
-                  borderRadius: 999,
-                  border: "2px solid #0B0F0E",
-                  background: i === 0 ? "#C9F24D" : "#FFFDF8",
-                  color: "#0B0F0E",
-                  cursor: "pointer",
-                  padding: 0,
-                  display: "grid",
-                  placeItems: "center",
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: 11,
-                  fontWeight: 500,
-                  transition: "background .2s, transform .2s",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "#C9F24D";
-                  e.currentTarget.style.transform = "translate(-50%,-50%) scale(1.15)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = i === 0 ? "#C9F24D" : "#FFFDF8";
-                  e.currentTarget.style.transform = "translate(-50%,-50%) scale(1)";
-                }}
-              >
-                {i + 1}
-              </button>
-            ))}
+            {/* SVG path connecting the stops sequentially */}
+            {(() => {
+              const count = realPath.stops.length;
+              // Compute layout positions for stops across the mini map
+              const stepPositions = realPath.stops.map((s, i) => {
+                const leftPct = count > 1 ? 16 + (i * (84 - 16)) / (count - 1) : 50;
+                // Subtle topographic curve (alternating heights)
+                const topPcts = [68, 48, 62, 38];
+                const topPct = topPcts[i % topPcts.length];
+                return { ...s, leftPct, topPct };
+              });
+
+              return (
+                <>
+                  <svg
+                    viewBox="0 0 100 100"
+                    preserveAspectRatio="none"
+                    style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+                    aria-hidden="true"
+                  >
+                    <polyline
+                      points={stepPositions.map((s) => `${s.leftPct},${s.topPct}`).join(" ")}
+                      fill="none"
+                      stroke="#0B0F0E"
+                      strokeWidth="1.6"
+                      strokeDasharray="5 4"
+                      vectorEffect="non-scaling-stroke"
+                      style={{ animation: "gp-dash 2.6s linear infinite" }}
+                    />
+                  </svg>
+                  {stepPositions.map((s, i) => (
+                    <button
+                      key={s.id}
+                      onClick={() => {
+                        window.location.hash = `#/stop/${realPath.id}/${s.id}`;
+                      }}
+                      aria-label={s.title}
+                      style={{
+                        position: "absolute",
+                        left: `${s.leftPct}%`,
+                        top: `${s.topPct}%`,
+                        transform: "translate(-50%,-50%)",
+                        width: 28,
+                        height: 28,
+                        borderRadius: 999,
+                        border: "2px solid #0B0F0E",
+                        background: i === 0 ? "#C9F24D" : "#FFFDF8",
+                        color: "#0B0F0E",
+                        cursor: "pointer",
+                        padding: 0,
+                        display: "grid",
+                        placeItems: "center",
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontSize: 11,
+                        fontWeight: 500,
+                        transition: "background .2s, transform .2s",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "#C9F24D";
+                        e.currentTarget.style.transform = "translate(-50%,-50%) scale(1.15)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = i === 0 ? "#C9F24D" : "#FFFDF8";
+                        e.currentTarget.style.transform = "translate(-50%,-50%) scale(1)";
+                      }}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                </>
+              );
+            })()}
             <div
               style={{
                 position: "absolute",
@@ -376,7 +389,7 @@ export default function Landing({ onNav }: Props) {
                 animation: "gp-fade 1s .8s both",
               }}
             >
-              PATH · 6 STOPS · CLICK TO TRAVEL
+              PATH · {realPath.stops.length} STOPS · CLICK TO TRAVEL
             </div>
           </div>
         </div>

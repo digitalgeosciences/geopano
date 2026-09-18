@@ -7,9 +7,7 @@ export interface Annotation {
   added: string;
   body: string;
   tags?: string[];
-  category?: string;
   color?: string;
-  priority?: "Low" | "Medium" | "High";
 }
 
 export interface Stop {

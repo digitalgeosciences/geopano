@@ -14,6 +14,8 @@
           "lon": "46.3950° E",
           "blurb": "First outcrop station along the Qiddiya escarpment descent. Exposed sedimentary units of the Wajid and Khuff sequences characterise the plateau edge south-west of Riyadh.",
           "panorama": "/uploads/sp00001.jpg",
+          "defaultYaw": 85,
+          "defaultPitch": 6,
           "annotations": []
         },
         {
@@ -24,6 +26,8 @@
           "lon": "46.3955° E",
           "blurb": "Mid-slope station documenting the transition from the plateau caprock to the talus slope. Cross-bedded sandstone packages visible in the upper cliff face.",
           "panorama": "/uploads/sp00002.jpg",
+          "defaultYaw": 85,
+          "defaultPitch": 6,
           "annotations": []
         },
         {
@@ -34,6 +38,8 @@
           "lon": "46.3962° E",
           "blurb": "Lower escarpment exposure where jointing and erosional fluting in the sandstone record long-term weathering under an arid regime.",
           "panorama": "/uploads/sp00003.jpg",
+          "defaultYaw": 85,
+          "defaultPitch": 6,
           "annotations": []
         },
         {
@@ -44,6 +50,8 @@
           "lon": "46.4006° E",
           "blurb": "Base-of-slope station. Angular debris and desert varnish on fallen blocks provide evidence of episodic cliff retreat over the Quaternary.",
           "panorama": "/uploads/sp00004.jpg",
+          "defaultYaw": 85,
+          "defaultPitch": 6,
           "annotations": []
         }
       ]
@@ -254,17 +262,17 @@
     "name": "Qiddiya Descent",
     "stopCount": 4,
     "distanceKm": 0.6,
-    "panorama": "/uploads/sp00009.jpg",
-    "hotspots": [
-      { "label": "Qiddiya Descent A", "leftPct": 18 },
-      { "label": "Qiddiya Descent B", "leftPct": 42 },
-      { "label": "Qiddiya Descent C", "leftPct": 66 }
-    ],
+    "panorama": "/uploads/sp00001.jpg",
+    "defaultYaw": 85,
+    "defaultPitch": 6,
+    "lat": "24.5281° N",
+    "lon": "46.3950° E",
+    "feature": "Wajid & Khuff Formations",
     "stops": [
-      { "title": "Descent A", "leftPct": 16, "topPct": 68 },
-      { "title": "Descent B", "leftPct": 38, "topPct": 50 },
-      { "title": "Descent C", "leftPct": 60, "topPct": 60 },
-      { "title": "Descent D", "leftPct": 82, "topPct": 40 }
+      { "id": "sp00001", "title": "Qiddiya Descent A", "leftPct": 16, "topPct": 68 },
+      { "id": "sp00002", "title": "Qiddiya Descent B", "leftPct": 38, "topPct": 50 },
+      { "id": "sp00003", "title": "Qiddiya Descent C", "leftPct": 60, "topPct": 60 },
+      { "id": "sp00004", "title": "Qiddiya Descent D", "leftPct": 82, "topPct": 40 }
     ]
   }
 }

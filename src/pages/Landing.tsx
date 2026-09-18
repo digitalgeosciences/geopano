@@ -3,6 +3,8 @@ import db from "../data/db.json";
 import { View } from "../types";
 import PageFooter from "../components/PageFooter";
 
+import { resolveAssetUrl } from "../data/pathsData";
+
 interface Props {
   onNav: (v: View) => void;
 }
@@ -22,6 +24,8 @@ export default function Landing({ onNav }: Props) {
   // Take the real path and stop data directly from db.paths
   const realPath = db.paths.find((p) => p.id === "pt00001") || db.paths[0];
   const firstStop = realPath.stops[0];
+  const panoUrl = resolveAssetUrl(firstStop.panorama);
+  const prevUrl = resolveAssetUrl(firstStop.panorama.replace('/uploads/', '/uploads/preview/'));
 
   useEffect(() => {
     if (!viewerRef.current || !window.pannellum) return;
@@ -29,8 +33,8 @@ export default function Landing({ onNav }: Props) {
 
     const viewer = window.pannellum.viewer(viewerRef.current, {
       type: "equirectangular",
-      panorama: firstStop.panorama,
-      preview: firstStop.panorama.replace('/uploads/', '/uploads/preview/'),
+      panorama: panoUrl,
+      preview: prevUrl,
       autoLoad: true,
       showControls: false,
       showZoomCtrl: false,

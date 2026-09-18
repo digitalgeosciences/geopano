@@ -19,6 +19,21 @@ export function registerPanoramaUrl(stopId: string, url: string): void {
   }
 }
 
+export function resolveAssetUrl(url: string): string {
+  if (!url) return url;
+  if (
+    url.startsWith("http://") ||
+    url.startsWith("https://") ||
+    url.startsWith("blob:") ||
+    url.startsWith("data:")
+  ) {
+    return url;
+  }
+  const base = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
+  const path = url.startsWith("/") ? url : `/${url}`;
+  return `${base}${path}`;
+}
+
 export function getResolvedPanorama(stop: Stop): string {
   if (panoramaMemoryMap.has(stop.id)) {
     return panoramaMemoryMap.get(stop.id)!;
@@ -27,12 +42,12 @@ export function getResolvedPanorama(stop: Stop): string {
     const raw = sessionStorage.getItem(SESSION_PANORAMAS_KEY);
     if (raw) {
       const map = JSON.parse(raw);
-      if (map[stop.id]) return map[stop.id];
+      if (map[stop.id]) return resolveAssetUrl(map[stop.id]);
     }
   } catch {
     /* ignore */
   }
-  return stop.panorama || "/uploads/sp00009.jpg";
+  return resolveAssetUrl(stop.panorama || "/uploads/sp00009.jpg");
 }
 
 export function getCustomPaths(): Path[] {

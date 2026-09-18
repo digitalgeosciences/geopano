@@ -145,3 +145,60 @@ button { font: inherit; cursor: pointer; }
   display: none !important;
 }
 
+/* ── StopViewer Mobile & Responsive Controls ───────────────────────── */
+.gp-viewer-main {
+  position: relative;
+  height: calc(100vh - 57px);
+  height: calc(100dvh - 57px);
+  overflow: hidden;
+  background: #0B0F0E;
+}
+
+.gp-bottom-controls {
+  position: absolute;
+  left: clamp(10px, 2.5vw, 24px);
+  bottom: max(12px, env(safe-area-inset-bottom, 12px));
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  max-width: calc(100vw - 20px);
+}
+
+@media (max-width: 640px) {
+  .gp-bottom-controls {
+    left: 8px !important;
+    bottom: max(8px, env(safe-area-inset-bottom, 8px)) !important;
+    gap: 6px !important;
+  }
+  .gp-compass-btn {
+    width: 44px !important;
+    height: 44px !important;
+  }
+  .gp-compass-btn svg {
+    width: 44px !important;
+    height: 44px !important;
+  }
+  .gp-yaw-pill {
+    padding: 7px 10px !important;
+    font-size: 11px !important;
+    gap: 6px !important;
+  }
+  .gp-ctrl-btn-sm {
+    width: 28px !important;
+    height: 28px !important;
+  }
+  .gp-add-ann-toolbar {
+    bottom: 66px !important;
+    max-width: calc(100vw - 16px) !important;
+    overflow-x: auto !important;
+  }
+  .gp-top-right-info {
+    top: 10px !important;
+    right: 10px !important;
+    width: calc(100vw - 20px) !important;
+    max-width: 290px !important;
+  }
+}
+

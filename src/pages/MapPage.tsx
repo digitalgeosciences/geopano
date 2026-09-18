@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Path, Stop, View } from "../types";
 import { useIsMobile } from "../hooks/useWindowWidth";
+import PageFooter from "../components/PageFooter";
 import {
   getAllPaths,
   registerPanoramaUrl,
@@ -115,8 +116,8 @@ function AddModal({
     color: "#0B0F0E", outline: "none", boxSizing: "border-box",
   };
   const lbl: React.CSSProperties = {
-    display: "block", fontFamily: "'JetBrains Mono',monospace",
-    fontSize: 10, letterSpacing: ".14em", color: "#5A635F", marginBottom: 6,
+    display: "block", fontFamily: "'Instrument Sans',sans-serif",
+    fontSize: 10, fontWeight: 700, letterSpacing: ".08em", color: "#5A635F", marginBottom: 6,
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -189,7 +190,7 @@ function AddModal({
               <button
                 key={t}
                 onClick={() => { setTab(t); setDoneInfo(null); }}
-                style={{ padding: "7px 18px", borderRadius: 999, border: "1px solid", borderColor: tab === t ? "#0B0F0E" : "rgba(11,15,14,.18)", background: tab === t ? "#0B0F0E" : "transparent", color: tab === t ? "#C9F24D" : "#5A635F", fontFamily: "'JetBrains Mono',monospace", fontSize: 10, letterSpacing: ".14em", cursor: "pointer", transition: "all .15s" }}
+                style={{ padding: "7px 18px", borderRadius: 999, border: "1px solid", borderColor: tab === t ? "#0B0F0E" : "rgba(11,15,14,.18)", background: tab === t ? "#0B0F0E" : "transparent", color: tab === t ? "#C9F24D" : "#5A635F", fontFamily: "'Instrument Sans',sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: ".12em", cursor: "pointer", transition: "all .15s" }}
               >
                 {t === "stop" ? "NEW STOP / 360°" : "NEW PATH"}
               </button>
@@ -248,14 +249,14 @@ function AddModal({
                     <button
                       type="button"
                       onClick={() => setPanoMode("upload")}
-                      style={{ padding: "4px 10px", borderRadius: 6, fontSize: 10, fontFamily: "'JetBrains Mono',monospace", border: "1px solid", borderColor: panoMode === "upload" ? "#0B0F0E" : "transparent", background: panoMode === "upload" ? "#0B0F0E" : "transparent", color: panoMode === "upload" ? "#C9F24D" : "#5A635F", cursor: "pointer" }}
+                      style={{ padding: "4px 10px", borderRadius: 6, fontSize: 10, fontFamily: "'Instrument Sans',sans-serif", fontWeight: 700, border: "1px solid", borderColor: panoMode === "upload" ? "#0B0F0E" : "transparent", background: panoMode === "upload" ? "#0B0F0E" : "transparent", color: panoMode === "upload" ? "#C9F24D" : "#5A635F", cursor: "pointer" }}
                     >
                       FILE
                     </button>
                     <button
                       type="button"
                       onClick={() => setPanoMode("url")}
-                      style={{ padding: "4px 10px", borderRadius: 6, fontSize: 10, fontFamily: "'JetBrains Mono',monospace", border: "1px solid", borderColor: panoMode === "url" ? "#0B0F0E" : "transparent", background: panoMode === "url" ? "#0B0F0E" : "transparent", color: panoMode === "url" ? "#C9F24D" : "#5A635F", cursor: "pointer" }}
+                      style={{ padding: "4px 10px", borderRadius: 6, fontSize: 10, fontFamily: "'Instrument Sans',sans-serif", fontWeight: 700, border: "1px solid", borderColor: panoMode === "url" ? "#0B0F0E" : "transparent", background: panoMode === "url" ? "#0B0F0E" : "transparent", color: panoMode === "url" ? "#C9F24D" : "#5A635F", cursor: "pointer" }}
                     >
                       URL
                     </button>
@@ -279,7 +280,7 @@ function AddModal({
                     {panoPreview && (
                       <div style={{ marginTop: 10, position: "relative", height: 80, borderRadius: 8, overflow: "hidden", border: "1px solid rgba(11,15,14,.15)" }}>
                         <img src={panoPreview} alt="Panorama preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                        <span style={{ position: "absolute", bottom: 6, right: 8, background: "rgba(11,15,14,.75)", color: "#C9F24D", padding: "2px 6px", borderRadius: 4, fontSize: 9, fontFamily: "'JetBrains Mono',monospace" }}>360° LOADED</span>
+                        <span style={{ position: "absolute", bottom: 6, right: 8, background: "rgba(11,15,14,.75)", color: "#C9F24D", padding: "2px 6px", borderRadius: 4, fontSize: 9, fontFamily: "'Instrument Sans',sans-serif", fontWeight: 700 }}>360° LOADED</span>
                       </div>
                     )}
                   </div>
@@ -305,7 +306,7 @@ function AddModal({
                   <button
                     type="button"
                     onClick={onPickOnMap}
-                    style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid rgba(11,15,14,.2)", background: "#FFFDF8", cursor: "pointer", fontFamily: "'JetBrains Mono',monospace", fontSize: 11, color: "#0B0F0E", display: "flex", alignItems: "center", gap: 5 }}
+                    style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid rgba(11,15,14,.2)", background: "#FFFDF8", cursor: "pointer", fontFamily: "'Instrument Sans',sans-serif", fontWeight: 600, fontSize: 11, color: "#0B0F0E", display: "flex", alignItems: "center", gap: 5 }}
                   >
                     <span>📍</span>
                     <span>Pick on map</span>
@@ -351,7 +352,7 @@ function AddModal({
                         style={{ padding: "10px 8px", borderRadius: 10, border: active ? "1.5px solid #0B0F0E" : "1px solid rgba(11,15,14,.15)", background: active ? "rgba(201,242,77,.25)" : "#FFFDF8", cursor: "pointer", textAlign: "center", transition: "all .12s" }}
                       >
                         <div style={{ fontSize: 12, fontWeight: 600, color: "#0B0F0E" }}>{m.title}</div>
-                        <div style={{ fontSize: 9, fontFamily: "'JetBrains Mono',monospace", color: "#5A635F", marginTop: 2 }}>{m.desc}</div>
+                        <div style={{ fontSize: 9, fontFamily: "'Instrument Sans',sans-serif", color: "#5A635F", marginTop: 2 }}>{m.desc}</div>
                       </button>
                     );
                   })}
@@ -737,8 +738,9 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
   const visibleStops = stopsExpanded ? pathStops : pathStops.slice(0, 5);
 
   return (
-    <main style={{ position: "relative", height: "calc(100vh - 57px)", overflow: "hidden" }}>
-      <div ref={mapDivRef} style={{ position: "absolute", inset: 0, background: "#E4E0D6" }} />
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 57px)", background: "#F4F2ED" }}>
+      <main style={{ position: "relative", height: "calc(100vh - 135px)", minHeight: isMobile ? 480 : 540, overflow: "hidden" }}>
+        <div ref={mapDivRef} style={{ position: "absolute", inset: 0, background: "#E4E0D6" }} />
 
       {/* ── Add Stop/Path modal ─────────────────────────────────────────── */}
       {addModalOpen && (
@@ -1043,47 +1045,8 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
           </div>
         )}
 
-        {/* ── Zoom controls & North orientation (below layers) ────────────────── */}
+        {/* ── Zoom controls (below layers) ────────────────── */}
         <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
-          {/* North compass button */}
-          <button
-            onClick={resetToAllStops}
-            title="Orient North & Reset Map"
-            aria-label="Orient North & Reset Map"
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 12,
-              background: "#FFFDF8",
-              border: "1.5px solid #0B0F0E",
-              display: "grid",
-              placeItems: "center",
-              boxShadow: "0 8px 20px -14px rgba(11,15,14,.7)",
-              cursor: "pointer",
-              transition: "transform .15s, background .15s",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "#C9F24D"; e.currentTarget.style.transform = "scale(1.05)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "#FFFDF8"; e.currentTarget.style.transform = "scale(1)"; }}
-          >
-            <svg width="28" height="28" viewBox="0 0 36 36">
-              {/* N label outside circle in red color */}
-              <text x="18" y="6.5" textAnchor="middle" fill="#EF4444" fontSize="7" fontWeight="900" fontFamily="'Instrument Sans',sans-serif">N</text>
-
-              {/* Main circle */}
-              <circle cx="18" cy="20" r="12" fill="none" stroke="rgba(11,15,14,.18)" strokeWidth="1.5" />
-
-              {/* Tick marks inside the main circle */}
-              <line x1="18" y1="9.5" x2="18" y2="12.5" stroke="#EF4444" strokeWidth="1.5" strokeLinecap="round" />
-              <line x1="18" y1="30.5" x2="18" y2="27.5" stroke="rgba(11,15,14,.3)" strokeWidth="1.5" strokeLinecap="round" />
-              <line x1="7.5" y1="20" x2="10.5" y2="20" stroke="rgba(11,15,14,.3)" strokeWidth="1.5" strokeLinecap="round" />
-              <line x1="28.5" y1="20" x2="25.5" y2="20" stroke="rgba(11,15,14,.3)" strokeWidth="1.5" strokeLinecap="round" />
-
-              {/* Needles without center small circle */}
-              <polygon points="18,9.5 15,20 21,20" fill="#EF4444" stroke="#DC2626" strokeWidth="0.5" />
-              <polygon points="18,30.5 15,20 21,20" fill="#1E293B" />
-            </svg>
-          </button>
-
           {[{ label: "+", action: () => mapRef.current?.zoomIn() }, { label: "−", action: () => mapRef.current?.zoomOut() }].map(({ label, action }) => (
             <button key={label} onClick={action} style={{ width: 40, height: 40, borderRadius: 12, background: "#FFFDF8", border: "1px solid rgba(11,15,14,.2)", fontSize: 17, fontWeight: 500, cursor: "pointer", boxShadow: "0 8px 20px -14px rgba(11,15,14,.7)", transition: "background .2s, border .2s, color .2s", color: "#3E4744", display: "grid", placeItems: "center" }}
               onMouseEnter={(e) => { e.currentTarget.style.background = "#C9F24D"; e.currentTarget.style.color = "#0B0F0E"; e.currentTarget.style.borderColor = "#0B0F0E"; }}
@@ -1127,5 +1090,9 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
 
       {/* Zoom controls moved to top-right (see "Right: layers + zoom controls" above) */}
     </main>
+    <div style={{ background: "#F4F2ED", flexShrink: 0 }}>
+      <PageFooter onNav={onNav} />
+    </div>
+  </div>
   );
 }

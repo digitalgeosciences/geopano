@@ -31,36 +31,104 @@ export default function Landing({ onNav }: Props) {
     if (!viewerRef.current || !window.pannellum) return;
     if (pannellumRef.current) return;
 
-    const viewer = window.pannellum.viewer(viewerRef.current, {
-      type: "equirectangular",
-      panorama: panoUrl,
-      preview: prevUrl,
-      autoLoad: true,
-      showControls: false,
-      showZoomCtrl: false,
-      showFullscreenCtrl: false,
-      yaw: (firstStop as any).defaultYaw ?? 85,
-      pitch: (firstStop as any).defaultPitch ?? 6,
-      autoRotate: -0.4,
-      autoRotateInactivityDelay: 2000,
-      compass: false,
-      hfov: 90,
-      hotSpots: [],
-      strings: { loadingLabel: "" },
-    });
+    const startYaw = (firstStop as any).defaultYaw ?? 85;
+    const startPitch = (firstStop as any).defaultPitch ?? 14;
+    const startHfov = 72; // Natural, focused perspective (not wide fish-eye)
+    const hasPreview = Boolean(prevUrl && prevUrl !== panoUrl);
 
+    const config: Record<string, unknown> = hasPreview
+      ? {
+          default: {
+            firstScene: "preview",
+            autoLoad: true,
+            showControls: false,
+            showZoomCtrl: false,
+            showFullscreenCtrl: false,
+            autoRotate: -0.4,
+            autoRotateInactivityDelay: 2000,
+            compass: false,
+            hfov: startHfov,
+            minHfov: 40,
+            maxHfov: 85,
+            minPitch: -18,
+            maxPitch: 65,
+            yaw: startYaw,
+            pitch: startPitch,
+            hotSpots: [],
+            strings: { loadingLabel: "" },
+          },
+          scenes: {
+            preview: {
+              type: "equirectangular",
+              panorama: prevUrl,
+            },
+            hires: {
+              type: "equirectangular",
+              panorama: panoUrl,
+            },
+          },
+        }
+      : {
+          type: "equirectangular",
+          panorama: panoUrl,
+          autoLoad: true,
+          showControls: false,
+          showZoomCtrl: false,
+          showFullscreenCtrl: false,
+          autoRotate: -0.4,
+          autoRotateInactivityDelay: 2000,
+          compass: false,
+          hfov: startHfov,
+          minHfov: 40,
+          maxHfov: 85,
+          minPitch: -18,
+          maxPitch: 65,
+          yaw: startYaw,
+          pitch: startPitch,
+          hotSpots: [],
+          strings: { loadingLabel: "" },
+        };
+
+    const viewer = window.pannellum.viewer(viewerRef.current, config);
     pannellumRef.current = viewer;
 
+    let destroyed = false;
+    if (hasPreview) {
+      const img = new Image();
+      img.src = panoUrl;
+      img.onload = () => {
+        if (destroyed) return;
+        try {
+          const v = pannellumRef.current as any;
+          if (v && typeof v.loadScene === "function") {
+            v.loadScene("hires", v.getPitch(), v.getYaw(), v.getHfov());
+            v.startAutoRotate?.(-0.4);
+          }
+        } catch {
+          /* ignore */
+        }
+      };
+    }
+
     const interval = window.setInterval(() => {
-      try { setYaw(Math.round(viewer.getYaw())); } catch { /* destroyed */ }
+      try {
+        setYaw(Math.round(viewer.getYaw()));
+      } catch {
+        /* destroyed */
+      }
     }, 200);
 
     return () => {
+      destroyed = true;
       clearInterval(interval);
-      try { viewer.destroy(); } catch { /* already destroyed */ }
+      try {
+        viewer.destroy();
+      } catch {
+        /* already destroyed */
+      }
       pannellumRef.current = null;
     };
-  }, [firstStop]);
+  }, [firstStop, panoUrl, prevUrl]);
 
   const yawLabel = `YAW ${yaw}°`;
 

@@ -1,5 +1,6 @@
 export interface Annotation {
   kind: "point" | "line" | "polygon";
+  subType?: string;
   title: string;
   yaw: number;
   pitch: number;

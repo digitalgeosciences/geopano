@@ -148,10 +148,20 @@ button { font: inherit; cursor: pointer; }
 /* ── StopViewer Mobile & Responsive Controls ───────────────────────── */
 .gp-viewer-main {
   position: relative;
-  height: calc(100vh - 57px);
-  height: calc(100dvh - 57px);
+  height: calc(100vh - 135px);
+  height: calc(100dvh - 135px);
   overflow: hidden;
   background: #0B0F0E;
+  touch-action: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+}
+
+.pnlm-container,
+.pnlm-render-container,
+.pnlm-dragfix {
+  touch-action: none !important;
 }
 
 .gp-bottom-controls {
@@ -164,6 +174,26 @@ button { font: inherit; cursor: pointer; }
   gap: 8px;
   white-space: nowrap;
   max-width: calc(100vw - 20px);
+}
+
+/* ── Page Footer: unified height & strictly 1 row ────────────────────────────── */
+.gp-page-footer {
+  border-top: 1px solid rgba(11, 15, 14, 0.1);
+  padding: 28px clamp(16px, 4vw, 56px);
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 13px;
+  white-space: nowrap !important;
+  overflow: hidden;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 @media (max-width: 640px) {
@@ -193,12 +223,33 @@ button { font: inherit; cursor: pointer; }
     bottom: 66px !important;
     max-width: calc(100vw - 16px) !important;
     overflow-x: auto !important;
+    scrollbar-width: none !important;
+  }
+  .gp-add-ann-toolbar::-webkit-scrollbar {
+    display: none !important;
   }
   .gp-top-right-info {
-    top: 10px !important;
-    right: 10px !important;
-    width: calc(100vw - 20px) !important;
+    top: 8px !important;
+    right: 8px !important;
+    width: calc(100vw - 64px) !important;
     max-width: 290px !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .gp-footer-full {
+    display: none !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .gp-footer-email {
+    display: none !important;
+  }
+  .gp-page-footer {
+    padding: 8px 12px !important;
+    gap: 6px !important;
+    font-size: 11px !important;
   }
 }
 

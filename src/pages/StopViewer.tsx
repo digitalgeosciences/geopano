@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { View } from "../types";
 import { getAllPaths, getResolvedPanorama } from "../data/pathsData";
+import { useIsMobile } from "../hooks/useWindowWidth";
+import PageFooter from "../components/PageFooter";
 
 const paths = getAllPaths();
 // ── types ────────────────────────────────────────────────────────────────────
@@ -313,6 +315,8 @@ function persistNavArrows(pathId: string, stopId: string, config: NavArrowConfig
 // ── component ─────────────────────────────────────────────────────────────────
 
 export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initialYaw, initialPitch, initialAnnId }: Props) {
+  const isMobile = useIsMobile(640);
+  const [webglError, setWebglError] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const [annShareCopied, setAnnShareCopied] = useState<string | null>(null);
   const [isTitleCollapsed, setIsTitleCollapsed] = useState(false);
@@ -457,8 +461,8 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
             hfov: startHfov,
             minHfov: 40,
             maxHfov: 85,
-            minPitch: isCarStop ? -18 : -40,
-            maxPitch: 65,
+            minPitch: isCarStop ? -35 : -85,
+            maxPitch: isCarStop ? 75 : 85,
             yaw: startYaw,
             pitch: startPitch,
             hotSpots: [],
@@ -488,16 +492,38 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
           hfov: startHfov,
           minHfov: 40,
           maxHfov: 85,
-          minPitch: isCarStop ? -18 : -40,
-          maxPitch: 65,
+          minPitch: isCarStop ? -35 : -85,
+          maxPitch: isCarStop ? 75 : 85,
           yaw: startYaw,
           pitch: startPitch,
           hotSpots: [],
           strings: { loadingLabel: "" },
         };
 
-    const viewer = window.pannellum.viewer(viewerRef.current, pannellumConfig);
-    pannellumRef.current = viewer;
+    if (viewerRef.current) {
+      const oldCanvases = viewerRef.current.querySelectorAll("canvas");
+      oldCanvases.forEach((c) => {
+        try {
+          const gl = (c.getContext("webgl") || c.getContext("experimental-webgl")) as WebGLRenderingContext | null;
+          if (gl) {
+            const ext = gl.getExtension("WEBGL_lose_context");
+            if (ext) ext.loseContext();
+          }
+        } catch { /* ignore */ }
+      });
+      viewerRef.current.innerHTML = "";
+    }
+
+    let viewer: any = null;
+    try {
+      viewer = window.pannellum.viewer(viewerRef.current, pannellumConfig);
+      pannellumRef.current = viewer;
+      setWebglError(false);
+    } catch (err) {
+      console.error("Failed to initialize Pannellum WebGL viewer:", err);
+      setWebglError(true);
+      return;
+    }
 
     let destroyed = false;
     let progressTimer: ReturnType<typeof setInterval> | null = null;
@@ -538,13 +564,15 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
     const id = window.setInterval(() => {
       try {
         const el = viewerRef.current;
-        setVs({
-          yaw: viewer.getYaw(),
-          pitch: viewer.getPitch(),
-          hfov: viewer.getHfov(),
-          w: el?.clientWidth ?? 0,
-          h: el?.clientHeight ?? 0,
-        });
+        if (viewer && typeof viewer.getYaw === "function") {
+          setVs({
+            yaw: viewer.getYaw(),
+            pitch: viewer.getPitch(),
+            hfov: viewer.getHfov(),
+            w: el?.clientWidth ?? 0,
+            h: el?.clientHeight ?? 0,
+          });
+        }
       } catch { /* destroyed */ }
     }, 33);
 
@@ -552,7 +580,20 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
       destroyed = true;
       clearInterval(id);
       if (progressTimer) clearInterval(progressTimer);
-      try { viewer.destroy(); } catch { /* */ }
+      try { viewer?.destroy(); } catch { /* */ }
+      if (viewerRef.current) {
+        const oldCanvases = viewerRef.current.querySelectorAll("canvas");
+        oldCanvases.forEach((c) => {
+          try {
+            const gl = (c.getContext("webgl") || c.getContext("experimental-webgl")) as WebGLRenderingContext | null;
+            if (gl) {
+              const ext = gl.getExtension("WEBGL_lose_context");
+              if (ext) ext.loseContext();
+            }
+          } catch { /* ignore */ }
+        });
+        viewerRef.current.innerHTML = "";
+      }
       pannellumRef.current = null;
     };
   }, [panoramaUrl, previewUrl, pathId, stopId]);
@@ -807,10 +848,45 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
   // ── render ────────────────────────────────────────────────────────────────
 
   return (
-    <main className="gp-viewer-main">
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 57px)", background: "#0B0F0E" }}>
+      <main
+        className="gp-viewer-main"
+        style={{
+          position: "relative",
+          flex: 1,
+          height: isMobile ? "calc(100dvh - 135px)" : "calc(100vh - 135px)",
+          minHeight: isMobile ? 420 : "calc(100vh - 135px)",
+          overflow: "hidden",
+          background: "#0B0F0E",
+          touchAction: "none",
+        }}
+      >
+        {/* Pannellum */}
+        <div ref={viewerRef} style={{ position: "absolute", inset: 0, zIndex: 1, touchAction: "none" }} />
 
-      {/* Pannellum */}
-      <div ref={viewerRef} style={{ position: "absolute", inset: 0, zIndex: 1 }} />
+        {/* WebGL Error fallback banner if browser WebGL failed */}
+        {webglError && (
+          <div style={{ position: "absolute", inset: 0, zIndex: 15, display: "flex", alignItems: "center", justifyContent: "center", background: "#0B0F0E", color: "#FFFDF8", padding: 20 }}>
+            <div style={{ maxWidth: 420, width: "100%", background: "#151B19", border: "1.5px solid rgba(255,253,248,.16)", borderRadius: 18, padding: "26px 22px", textAlign: "center", boxShadow: "0 24px 60px rgba(0,0,0,.7)" }}>
+              <div style={{ width: 46, height: 46, borderRadius: 999, background: "rgba(239,68,68,.15)", border: "1.5px solid #EF4444", color: "#EF4444", display: "grid", placeItems: "center", margin: "0 auto 14px", fontSize: 22, fontWeight: 700 }}>!</div>
+              <h2 style={{ fontSize: 17, fontWeight: 700, margin: "0 0 8px", color: "#FFFDF8", fontFamily: "'Bricolage Grotesque',sans-serif" }}>Hardware Acceleration Needed</h2>
+              <p style={{ fontSize: 13, color: "#9AA39E", lineHeight: 1.55, margin: "0 0 16px" }}>
+                Your browser needs hardware acceleration enabled to render WebGL 360° panoramas smoothly:
+              </p>
+              <div style={{ textAlign: "left", fontSize: 12, color: "#D1D5DB", background: "rgba(255,255,255,.05)", padding: "12px 14px", borderRadius: 10, marginBottom: 18, lineHeight: 1.8, fontFamily: "'Instrument Sans',sans-serif" }}>
+                1. Open browser <b>Settings → System</b><br/>
+                2. Turn <b>ON</b> "Use graphics acceleration when available"<br/>
+                3. Click <b>Relaunch</b> or refresh this tab
+              </div>
+              <button
+                onClick={() => window.location.reload()}
+                style={{ width: "100%", padding: "11px 0", borderRadius: 10, background: "#C9F24D", border: "1px solid #0B0F0E", fontWeight: 700, fontSize: 13, cursor: "pointer", color: "#0B0F0E", fontFamily: "'Instrument Sans',sans-serif" }}
+              >
+                ↻ Reload Page
+              </button>
+            </div>
+          </div>
+        )}
 
       {/* Loading progress bar */}
       {!panoLoaded && (
@@ -1267,7 +1343,28 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
 
         {/* Annotations list panel */}
         {annListOpen && (
-          <div style={{ pointerEvents: "auto", position: "absolute", left: 52, top: 118, width: "min(320px,calc(100vw - 75px))", maxHeight: "calc(100vh - 200px)", display: "flex", flexDirection: "column", borderRadius: 20, overflow: "hidden", background: "rgba(255,253,248,.96)", border: "1px solid rgba(11,15,14,.14)", backdropFilter: "blur(10px)", boxShadow: "0 18px 42px -24px rgba(11,15,14,.8)" }}>
+          <div
+            style={{
+              pointerEvents: "auto",
+              position: isMobile ? "fixed" : "absolute",
+              left: isMobile ? 0 : 52,
+              right: isMobile ? 0 : undefined,
+              bottom: isMobile ? 0 : undefined,
+              top: isMobile ? undefined : 118,
+              width: isMobile ? "100%" : "min(320px,calc(100vw - 75px))",
+              height: isMobile ? "33.33vh" : undefined,
+              maxHeight: isMobile ? "33.33vh" : "calc(100vh - 200px)",
+              display: "flex",
+              flexDirection: "column",
+              borderRadius: isMobile ? "16px 16px 0 0" : 20,
+              overflow: "hidden",
+              background: "rgba(255,253,248,.96)",
+              border: "1px solid rgba(11,15,14,.14)",
+              backdropFilter: "blur(10px)",
+              boxShadow: isMobile ? "0 -8px 32px -8px rgba(11,15,14,.8)" : "0 18px 42px -24px rgba(11,15,14,.8)",
+              zIndex: 600,
+            }}
+          >
             <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "12px 14px 12px 18px", borderBottom: "1px solid rgba(11,15,14,.1)" }}>
               <span style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "#3E4744" }}>ANNOTATIONS · {localAnns.length}</span>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -1448,23 +1545,45 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
 
         {/* Path panel */}
         {pathPanelOpen && (
-          <div style={{ pointerEvents: "auto", position: "absolute", left: 52, top: 166, width: "min(310px,calc(100vw - 90px))", borderRadius: 20, overflow: "hidden", background: "#14504A", color: "#F4F2ED", border: "1px solid #0B0F0E", boxShadow: "0 18px 42px -24px rgba(11,15,14,.9)", padding: 18 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <div
+            style={{
+              pointerEvents: "auto",
+              position: isMobile ? "fixed" : "absolute",
+              left: isMobile ? 0 : 52,
+              right: isMobile ? 0 : undefined,
+              bottom: isMobile ? 0 : undefined,
+              top: isMobile ? undefined : 166,
+              width: isMobile ? "100%" : "min(310px,calc(100vw - 90px))",
+              height: isMobile ? "33.33vh" : undefined,
+              maxHeight: isMobile ? "33.33vh" : undefined,
+              borderRadius: isMobile ? "16px 16px 0 0" : 20,
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+              background: "#14504A",
+              color: "#F4F2ED",
+              border: "1px solid #0B0F0E",
+              boxShadow: isMobile ? "0 -8px 32px -8px rgba(11,15,14,.9)" : "0 18px 42px -24px rgba(11,15,14,.9)",
+              padding: isMobile ? "10px 14px" : 18,
+              zIndex: 600,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: isMobile ? 6 : 12, flexShrink: 0 }}>
               <div style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: ".12em", color: "#C9F24D" }}>{curPath.name.toUpperCase()}</div>
-              <button onClick={() => setPathPanelOpen(false)} style={{ width: 28, height: 28, borderRadius: 999, border: "1px solid #0B0F0E", background: "#C9F24D", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
+              <button onClick={() => setPathPanelOpen(false)} style={{ width: 26, height: 26, borderRadius: 999, border: "1px solid #0B0F0E", background: "#C9F24D", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
                 <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 2l8 8M10 2L2 10" stroke="#0B0F0E" strokeWidth="1.8" strokeLinecap="round" /></svg>
               </button>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div className="gp-popover-scroll" style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1, minHeight: 0, overflowY: "auto", paddingRight: 4 }}>
               {curPath.stops.map((s, i) => {
                 const on = i === stopIdx;
                 return (
                   <button key={s.id} onClick={() => { goToStop(s.id); setPathPanelOpen(false); }}
-                    style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", border: "1px solid", borderColor: on ? "#C9F24D" : "rgba(255,253,248,.14)", borderRadius: 12, background: on ? "rgba(201,242,77,.15)" : "rgba(255,253,248,.07)", cursor: "pointer", textAlign: "left", color: "#F4F2ED", fontFamily: "inherit", transition: "background .15s" }}>
-                    <span style={{ width: 24, height: 24, borderRadius: 999, border: "2px solid", borderColor: on ? "#C9F24D" : "rgba(255,253,248,.4)", background: on ? "#C9F24D" : "transparent", color: on ? "#0B0F0E" : "rgba(255,253,248,.6)", display: "grid", placeItems: "center", fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
+                    style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: isMobile ? "7px 12px" : "10px 14px", border: "1px solid", borderColor: on ? "#C9F24D" : "rgba(255,253,248,.14)", borderRadius: 12, background: on ? "rgba(201,242,77,.15)" : "rgba(255,253,248,.07)", cursor: "pointer", textAlign: "left", color: "#F4F2ED", fontFamily: "inherit", transition: "background .15s" }}>
+                    <span style={{ width: 22, height: 22, borderRadius: 999, border: "2px solid", borderColor: on ? "#C9F24D" : "rgba(255,253,248,.4)", background: on ? "#C9F24D" : "transparent", color: on ? "#0B0F0E" : "rgba(255,253,248,.6)", display: "grid", placeItems: "center", fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
                       {i + 1}
                     </span>
-                    <span style={{ fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.title}</span>
+                    <span style={{ fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.title}</span>
                   </button>
                 );
               })}
@@ -1474,7 +1593,27 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
 
         {/* Navigation arrow config panel */}
         {navConfigOpen && curPath.stops.length > 1 && (
-          <div style={{ pointerEvents: "auto", position: "absolute", left: 52, top: 166, width: "min(310px,calc(100vw - 90px))", maxHeight: "calc(100vh - 220px)", overflowY: "auto", borderRadius: 20, background: "rgba(255,253,248,.96)", border: "1px solid rgba(11,15,14,.14)", backdropFilter: "blur(10px)", boxShadow: "0 18px 42px -24px rgba(11,15,14,.8)", padding: 18 }}>
+          <div
+            style={{
+              pointerEvents: "auto",
+              position: isMobile ? "fixed" : "absolute",
+              left: isMobile ? 0 : 52,
+              right: isMobile ? 0 : undefined,
+              bottom: isMobile ? 0 : undefined,
+              top: isMobile ? undefined : 166,
+              width: isMobile ? "100%" : "min(310px,calc(100vw - 90px))",
+              height: isMobile ? "33.33vh" : undefined,
+              maxHeight: isMobile ? "33.33vh" : "calc(100vh - 220px)",
+              overflowY: "auto",
+              borderRadius: isMobile ? "16px 16px 0 0" : 20,
+              background: "rgba(255,253,248,.96)",
+              border: "1px solid rgba(11,15,14,.14)",
+              backdropFilter: "blur(10px)",
+              boxShadow: isMobile ? "0 -8px 32px -8px rgba(11,15,14,.8)" : "0 18px 42px -24px rgba(11,15,14,.8)",
+              padding: isMobile ? "12px 16px" : 18,
+              zIndex: 600,
+            }}
+          >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
               <span style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: ".1em", color: "#5A635F" }}>NAVIGATION ARROWS</span>
               <button onClick={() => { setNavConfigOpen(false); setPlacingArrow(null); }} style={{ width: 28, height: 28, borderRadius: 999, border: "1px solid #0B0F0E", background: "#C9F24D", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
@@ -1617,8 +1756,27 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
 
       {/* ── Annotation detail card ─────────────────────────────────────────── */}
       {openAnn && !formVisible && (
-        <div style={{ position: "absolute", right: "clamp(12px,2vw,24px)", top: "clamp(12px,2vw,24px)", zIndex: 25, width: "min(310px,calc(100vw - 32px))", maxHeight: "calc(100% - 116px)", display: "flex", flexDirection: "column", borderRadius: 18, overflow: "hidden", background: "#FFFDF8", border: "1px solid #0B0F0E", boxShadow: "0 24px 56px -26px rgba(11,15,14,.95)" }}>
-          <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, padding: "11px 12px 11px 14px", background: "#FFFDF8", borderBottom: "1px solid rgba(11,15,14,.12)" }}>
+        <div
+          style={{
+            position: isMobile ? "fixed" : "absolute",
+            left: isMobile ? 0 : undefined,
+            right: isMobile ? 0 : "clamp(12px,2vw,24px)",
+            bottom: isMobile ? 0 : undefined,
+            top: isMobile ? undefined : "clamp(12px,2vw,24px)",
+            zIndex: 600,
+            width: isMobile ? "100%" : "min(310px,calc(100vw - 32px))",
+            height: isMobile ? "33.33vh" : undefined,
+            maxHeight: isMobile ? "33.33vh" : "calc(100% - 116px)",
+            display: "flex",
+            flexDirection: "column",
+            borderRadius: isMobile ? "16px 16px 0 0" : 18,
+            overflow: "hidden",
+            background: "#FFFDF8",
+            border: "1px solid #0B0F0E",
+            boxShadow: isMobile ? "0 -8px 32px -8px rgba(11,15,14,.95)" : "0 24px 56px -26px rgba(11,15,14,.95)",
+          }}
+        >
+          <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, padding: isMobile ? "9px 12px 9px 14px" : "11px 12px 11px 14px", background: "#FFFDF8", borderBottom: "1px solid rgba(11,15,14,.12)" }}>
             <span style={{ width: 10, height: 10, borderRadius: 999, background: openAnn.color || "#C9F24D", border: "1.2px solid #0B0F0E", flexShrink: 0 }} />
             <span style={{ flex: 1, minWidth: 0, fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 15, color: "#0B0F0E", letterSpacing: "-.015em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{openAnn.title}</span>
             <button
@@ -1655,9 +1813,9 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
               <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 2l8 8M10 2L2 10" stroke="#0B0F0E" strokeWidth="1.8" strokeLinecap="round" /></svg>
             </button>
           </div>
-          <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", padding: "16px 18px" }}>
-            {(openAnn.note || openAnn.body) && <p style={{ margin: "0 0 14px", color: "#3E4744", fontSize: 14, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{openAnn.note || openAnn.body}</p>}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 16, paddingTop: (openAnn.note || openAnn.body) ? 14 : 0, borderTop: (openAnn.note || openAnn.body) ? "1px solid rgba(11,15,14,.1)" : "none" }}>
+          <div className="gp-popover-scroll" style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", padding: isMobile ? "10px 14px" : "16px 18px" }}>
+            {(openAnn.note || openAnn.body) && <p style={{ margin: "0 0 14px", color: "#3E4744", fontSize: 13, lineHeight: 1.55, whiteSpace: "pre-wrap" }}>{openAnn.note || openAnn.body}</p>}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 14, paddingTop: (openAnn.note || openAnn.body) ? 10 : 0, borderTop: (openAnn.note || openAnn.body) ? "1px solid rgba(11,15,14,.1)" : "none" }}>
               {[
                 { k: "KIND", v: openAnn.kind.toUpperCase() },
                 { k: "STYLE", v: (openAnn.subType || (openAnn.kind === "point" ? "filled" : openAnn.kind === "line" ? "solid" : "outline")).toUpperCase() },
@@ -1665,24 +1823,24 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
               ].map(({ k, v }) => (
                 <div key={k}>
                   <div style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: ".08em", color: "#5A635F" }}>{k}</div>
-                  <div style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 12, fontWeight: 600, marginTop: 3 }}>{v}</div>
+                  <div style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 12, fontWeight: 600, marginTop: 2 }}>{v}</div>
                 </div>
               ))}
             </div>
             {openAnn.tags && openAnn.tags.length > 0 && (
-              <div style={{ marginTop: 14, display: "flex", flexWrap: "wrap", gap: 6 }}>
+              <div style={{ marginTop: 10, display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {openAnn.tags.map(t => (
-                  <span key={t} style={{ padding: "4px 8px", borderRadius: 4, background: "rgba(11,15,14,.06)", fontSize: 11, fontWeight: 600, fontFamily: "'Instrument Sans',sans-serif", color: "#3E4744" }}>#{t}</span>
+                  <span key={t} style={{ padding: "3px 7px", borderRadius: 4, background: "rgba(11,15,14,.06)", fontSize: 10, fontWeight: 600, fontFamily: "'Instrument Sans',sans-serif", color: "#3E4744" }}>#{t}</span>
                 ))}
               </div>
             )}
             {openAnn.refLink && (
-              <a href={openAnn.refLink} target="_blank" rel="noopener noreferrer" style={{ display: "block", marginTop: 14, fontSize: 13, color: "#14504A" }}>
+              <a href={openAnn.refLink} target="_blank" rel="noopener noreferrer" style={{ display: "block", marginTop: 10, fontSize: 12, color: "#14504A" }}>
                 {openAnn.refLabel || openAnn.refLink}
               </a>
             )}
           </div>
-          <div style={{ flexShrink: 0, padding: "12px 18px", borderTop: "1px solid rgba(11,15,14,.08)", display: "flex", gap: 8 }}>
+          <div style={{ flexShrink: 0, padding: isMobile ? "8px 14px" : "12px 18px", borderTop: "1px solid rgba(11,15,14,.08)", display: "flex", gap: 8 }}>
             <button
               onClick={() => startEditAnn(openAnn)}
               style={{ flex: 1, padding: "9px 0", borderRadius: 10, background: "#C9F24D", border: "1px solid #0B0F0E", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "'Instrument Sans',sans-serif", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
@@ -2197,6 +2355,10 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
           </button>
         );
       })}
-    </main>
+      </main>
+      <div style={{ background: "#F4F2ED", flexShrink: 0 }}>
+        <PageFooter onNav={onNav} />
+      </div>
+    </div>
   );
 }

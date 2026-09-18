@@ -530,10 +530,10 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
     }
   }, [selectedPathId, selectedStopId, paths]);
 
-  // popover shared style
+  // popover shared style (in mobile view, exactly 1/3 of the view, not more)
   const popoverStyle = (topOffset = 0): React.CSSProperties =>
     isMobile
-      ? { position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 600, borderRadius: "16px 16px 0 0", minHeight: "55vh", maxHeight: "80vh", overflow: "hidden", display: "flex", flexDirection: "column", background: "rgba(255,253,248,.99)", border: "1px solid rgba(11,15,14,.14)", backdropFilter: "blur(16px)", boxShadow: "0 -8px 32px -8px rgba(11,15,14,.3)" }
+      ? { position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 600, borderRadius: "16px 16px 0 0", height: "33.33vh", maxHeight: "33.33vh", minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column", background: "rgba(255,253,248,.99)", border: "1px solid rgba(11,15,14,.14)", backdropFilter: "blur(16px)", boxShadow: "0 -8px 32px -8px rgba(11,15,14,.3)" }
       : { position: "absolute", left: 52, top: topOffset, width: 300, borderRadius: 16, overflow: "hidden", background: "rgba(255,253,248,.97)", border: "1px solid rgba(11,15,14,.14)", backdropFilter: "blur(12px)", boxShadow: "0 12px 32px -16px rgba(11,15,14,.7)" };
 
   function applyBase(key: BaseKey, map: ReturnType<typeof window.L.map>) {
@@ -811,12 +811,12 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
                 {panel === "paths" ? (
                   <>
                     {/* Header */}
-                    <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px 8px" }}>
+                    <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: isMobile ? "8px 14px 4px" : "12px 14px 8px" }}>
                       <span style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "#3E4744" }}>PATHS · {filteredPaths.length}</span>
                       <button onClick={() => setPanel("none")} style={closeBtn}><CloseX /></button>
                     </div>
                     {/* Search inside popover */}
-                    <div style={{ flexShrink: 0, paddingBottom: 10 }}>
+                    <div style={{ flexShrink: 0, paddingBottom: isMobile ? 4 : 10 }}>
                       {searchBar(pathSearch, (v) => { setPathSearch(v); setPathsExpanded(false); }, "Search paths…")}
                     </div>
                     {/* Path list */}
@@ -826,7 +826,7 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
                         const on = pi === pathIdx;
                         return (
                           <button key={p.id} onClick={() => flyToPath(pi)}
-                            style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", border: "none", borderBottom: "1px solid rgba(11,15,14,.06)", cursor: "pointer", textAlign: "left", background: on ? "rgba(201,242,77,.28)" : "transparent", transition: "background .12s", fontFamily: "inherit" }}>
+                            style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: isMobile ? "8px 14px" : "10px 14px", border: "none", borderBottom: "1px solid rgba(11,15,14,.06)", cursor: "pointer", textAlign: "left", background: on ? "rgba(201,242,77,.28)" : "transparent", transition: "background .12s", fontFamily: "inherit" }}>
                             <span style={{ width: 8, height: 8, borderRadius: 99, flexShrink: 0, border: "1px solid #0B0F0E", background: on ? "#C9F24D" : "#FFFDF8", display: "block" }} />
                             <span style={{ minWidth: 0, flex: 1 }}>
                               <span style={{ display: "block", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</span>
@@ -847,7 +847,7 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
                 ) : (
                   <>
                     {/* Header with Back Arrow and Close button */}
-                    <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px 10px", borderBottom: "1px solid rgba(11,15,14,.07)", gap: 8 }}>
+                    <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: isMobile ? "8px 14px 6px" : "12px 14px 10px", borderBottom: "1px solid rgba(11,15,14,.07)", gap: 8 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                         <button
                           onClick={() => setPanel("paths")}
@@ -914,7 +914,7 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
                     </div>
 
                     {/* CTA row */}
-                    <div style={{ flexShrink: 0, padding: "10px 14px 14px", display: "flex", gap: 7, borderTop: "1px solid rgba(11,15,14,.08)" }}>
+                    <div style={{ flexShrink: 0, padding: isMobile ? "7px 14px 9px" : "10px 14px 14px", display: "flex", gap: 7, borderTop: "1px solid rgba(11,15,14,.08)" }}>
                       <button onClick={() => {
                         onSelectStop(curPath.id, curStop.id);
                         window.location.hash = `#/stop/${curPath.id}/${curStop.id}`;

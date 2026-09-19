@@ -4,6 +4,7 @@ import { View } from "../types";
 import PageFooter from "../components/PageFooter";
 
 import { resolveAssetUrl } from "../data/pathsData";
+import { supportsWebGL } from "../utils/webgl";
 
 interface Props {
   onNav: (v: View) => void;
@@ -20,6 +21,9 @@ export default function Landing({ onNav }: Props) {
   const viewerRef = useRef<HTMLDivElement>(null);
   const pannellumRef = useRef<{ destroy: () => void; getYaw: () => number } | null>(null);
   const [yaw, setYaw] = useState(0);
+  // Without WebGL the hero falls back to the flat preview JPEG rather than
+  // letting Pannellum render its own error panel on the marketing page.
+  const [noWebgl, setNoWebgl] = useState(false);
 
   // Take the real path and stop data directly from db.paths
   const realPath = db.paths.find((p) => p.id === "pt00001") || db.paths[0];
@@ -30,6 +34,10 @@ export default function Landing({ onNav }: Props) {
   useEffect(() => {
     if (!viewerRef.current || !window.pannellum) return;
     if (pannellumRef.current) return;
+    if (!supportsWebGL()) {
+      setNoWebgl(true);
+      return;
+    }
 
     const startYaw = (firstStop as any).defaultYaw ?? 85;
     const startPitch = (firstStop as any).defaultPitch ?? 14;
@@ -130,7 +138,7 @@ export default function Landing({ onNav }: Props) {
     };
   }, [firstStop, panoUrl, prevUrl]);
 
-  const yawLabel = `YAW ${yaw}°`;
+  const yawLabel = noWebgl ? "STILL PREVIEW" : `YAW ${yaw}°`;
 
   return (
     <main>
@@ -349,13 +357,21 @@ export default function Landing({ onNav }: Props) {
 
           {/* Pannellum 360 viewer */}
           <div style={{ position: "relative", height: "clamp(230px,30vw,320px)", background: "#0B0F0E" }}>
-            <div ref={viewerRef} style={{ position: "absolute", inset: 0 }} />
+            {noWebgl ? (
+              <img
+                src={prevUrl || panoUrl}
+                alt={`${firstStop.title} — panorama preview`}
+                style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+              />
+            ) : (
+              <div ref={viewerRef} style={{ position: "absolute", inset: 0 }} />
+            )}
             {/* Overlays from real stop in database */}
             <div style={{ position: "absolute", right: 14, bottom: 14, zIndex: 10, padding: "8px 14px", borderRadius: 999, background: "rgba(255,253,248,.92)", color: "#0B0F0E", fontSize: 12, fontWeight: 600, pointerEvents: "none" }}>
               {firstStop.title}
             </div>
             <div style={{ position: "absolute", right: 14, top: 14, zIndex: 10, padding: "6px 12px", borderRadius: 999, background: "rgba(11,15,14,.55)", color: "#FFFDF8", fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: ".14em", pointerEvents: "none" }}>
-              DRAG TO LOOK
+              {noWebgl ? "ENABLE WEBGL FOR 360°" : "DRAG TO LOOK"}
             </div>
           </div>
 

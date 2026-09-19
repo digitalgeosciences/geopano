@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { View } from "../types";
 import { getAllPaths, getResolvedPanorama } from "../data/pathsData";
 import { useIsMobile } from "../hooks/useWindowWidth";
+import { supportsWebGL } from "../utils/webgl";
 import PageFooter from "../components/PageFooter";
 
 const paths = getAllPaths();
@@ -502,6 +503,13 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
         } catch { /* ignore */ }
       });
       viewerRef.current.innerHTML = "";
+    }
+
+    // Probe before initialising: Pannellum swallows WebGL failures and renders its
+    // own error panel, so the catch below never fires and our fallback never shows.
+    if (!supportsWebGL()) {
+      setWebglError(true);
+      return;
     }
 
     let viewer: any = null;

@@ -173,8 +173,12 @@ button { font: inherit; cursor: pointer; }
   border-top-color: #0B0F0E !important;
 }
 
-/* Hide Pannellum default black loading box */
-.pnlm-load-box {
+/* Hide Pannellum's default black loading box AND its error panel. The app renders
+   its own branded fallbacks instead: the "Hardware Acceleration Needed" card in
+   StopViewer, and a flat preview image in the Landing hero. */
+.pnlm-load-box,
+.pnlm-error-msg,
+.pnlm-info-box {
   display: none !important;
 }
 

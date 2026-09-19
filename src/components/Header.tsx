@@ -16,7 +16,7 @@ const NAV_ITEMS: { label: string; view: View }[] = [
 ];
 
 export default function Header({ view, onNav }: HeaderProps) {
-  const isMobile = useIsMobile(768);
+  const isMobile = useIsMobile();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const tab = (active: boolean) =>

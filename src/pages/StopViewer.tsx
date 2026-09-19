@@ -2144,7 +2144,7 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
           className="gp-add-ann-toolbar"
           style={{
             position: "absolute",
-            bottom: isMobile ? "max(12px, env(safe-area-inset-bottom, 12px))" : "clamp(12px,2vw,24px)",
+            bottom: isMobile ? "max(12px, env(safe-area-inset-bottom, 12px))" : "clamp(28px,3vw,40px)",
             left: "50%",
             transform: "translateX(-50%)",
             zIndex: 100,

@@ -1011,7 +1011,9 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, height: "100%", background: "#F4F2ED", overflow: "hidden" }}>
       <main style={{ position: "relative", flex: 1, minHeight: 0, overflow: "hidden" }}>
-        <div ref={mapDivRef} style={{ position: "absolute", inset: 0, background: "#E4E0D6" }} />
+        {/* zIndex 0 confines Leaflet's internal panes (tile 200 … popup 700) to their own
+            stacking context, so map tiles can't paint over the overlay controls below. */}
+        <div ref={mapDivRef} style={{ position: "absolute", inset: 0, zIndex: 0, background: "#E4E0D6" }} />
 
       {/* ── Add Stop/Path modal ─────────────────────────────────────────── */}
       {addModalOpen && (
@@ -1423,8 +1425,8 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
             style={{
               position: "absolute",
               left: "clamp(12px,2vw,24px)",
-              bottom: isMobile ? 28 : "clamp(12px,2vw,24px)",
-              zIndex: 50,
+              bottom: isMobile ? 46 : "clamp(28px,3vw,40px)",
+              zIndex: 450,
               opacity: hideOnMobileSheet ? 0 : 1,
               pointerEvents: hideOnMobileSheet ? "none" : "auto",
               transform: hideOnMobileSheet ? "translateY(18px)" : "translateY(0)",

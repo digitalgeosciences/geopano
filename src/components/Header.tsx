@@ -40,6 +40,7 @@ export default function Header({ view, onNav }: HeaderProps) {
           position: "sticky",
           top: 0,
           zIndex: 40,
+          flexShrink: 0,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",

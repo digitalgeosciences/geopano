@@ -157,7 +157,7 @@ export default function App() {
   return (
     <div
       style={{
-        minHeight: "100vh",
+        minHeight: isFixedLayout ? "100dvh" : "100vh",
         height: isFixedLayout ? "100dvh" : "auto",
         display: isFixedLayout ? "flex" : "block",
         flexDirection: "column",

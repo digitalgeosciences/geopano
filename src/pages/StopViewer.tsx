@@ -455,8 +455,6 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
             hfov: startHfov,
             minHfov: 40,
             maxHfov: 85,
-            minPitch: isCarStop ? -35 : -85,
-            maxPitch: isCarStop ? 75 : 85,
             yaw: startYaw,
             pitch: startPitch,
             hotSpots: [],
@@ -486,8 +484,6 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
           hfov: startHfov,
           minHfov: 40,
           maxHfov: 85,
-          minPitch: isCarStop ? -35 : -85,
-          maxPitch: isCarStop ? 75 : 85,
           yaw: startYaw,
           pitch: startPitch,
           hotSpots: [],
@@ -1112,23 +1108,42 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
                 boxShadow: "0 14px 34px -22px rgba(11,15,14,.7)",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                <div
-                  style={{
-                    fontFamily: "'Instrument Sans',sans-serif",
-                    fontSize: 11,
-                    fontWeight: 700,
-                    letterSpacing: ".08em",
-                    color: "#5A635F",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
-                  {curPath.name.toUpperCase()} · STOP {stopIdx + 1} OF {curPath.stops.length}
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div
+                    style={{
+                      fontFamily: "'Instrument Sans',sans-serif",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: ".08em",
+                      color: "#5A635F",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {curPath.name.toUpperCase()} · STOP {stopIdx + 1} OF {curPath.stops.length}
+                  </div>
+                  <h1
+                    style={{
+                      fontFamily: "'Bricolage Grotesque',sans-serif",
+                      fontWeight: 800,
+                      fontSize: "clamp(17px,2vw,22px)",
+                      letterSpacing: "-.03em",
+                      lineHeight: 1.15,
+                      margin: "3px 0 4px",
+                    }}
+                  >
+                    {curStop.title}
+                  </h1>
+                  <div style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 500, color: "#5A635F" }}>
+                    {curStop.lat}, {curStop.lon}
+                  </div>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
-                  {/* Collapse totally to the right button */}
+
+                {/* Vertical column: Collapse icon UP, Close icon DOWN */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                  {/* Collapse totally to the right button (UP) */}
                   <button
                     onClick={() => setIsTitleCollapsed(true)}
                     title="Collapse to the right"
@@ -1152,7 +1167,8 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
                       <path d="M6 4l4 4-4 4" stroke="#0B0F0E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </button>
-                  {/* Back to map button */}
+
+                  {/* Close / Back to map button (DOWN) */}
                   <button
                     onClick={() => {
                       if (pathId && stopId) {
@@ -1183,35 +1199,41 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
                   </button>
                 </div>
               </div>
-
-              <div style={{ marginTop: 6 }}>
-                <h1
-                  style={{
-                    fontFamily: "'Bricolage Grotesque',sans-serif",
-                    fontWeight: 800,
-                    fontSize: "clamp(17px,2vw,22px)",
-                    letterSpacing: "-.03em",
-                    lineHeight: 1.15,
-                    margin: "2px 0 5px",
-                  }}
-                >
-                  {curStop.title}
-                </h1>
-                <div style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 500, color: "#5A635F" }}>
-                  {curStop.lat}, {curStop.lon}
-                </div>
-              </div>
             </div>
           </div>
         )
       )}
 
       {/* ── Top-left: rail ────────────────────────────────────────────────── */}
-      <div style={{ position: "absolute", left: "clamp(12px,2vw,24px)", top: "clamp(12px,2vw,24px)", zIndex: 20, width: "min(340px,calc(100% - 24px))", display: "flex", flexDirection: "column", gap: 12, pointerEvents: "none" }}>
-
+      <div
+        style={{
+          position: "absolute",
+          left: "clamp(12px,2vw,24px)",
+          top: "clamp(12px,2vw,24px)",
+          zIndex: (annListOpen || pathPanelOpen) ? 2500 : 20,
+          width: "min(340px,calc(100% - 24px))",
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
+          pointerEvents: "none",
+        }}
+      >
         {/* Rail */}
         <div style={{ pointerEvents: "auto", display: "flex", flexDirection: "column", gap: 8, width: 40 }}>
-          <button onClick={() => { setAnnListOpen((o) => !o); setPathPanelOpen(false); }} aria-label="Annotations" title="Annotations" style={railBtn(annListOpen)}>
+          <button
+            onClick={() => {
+              const next = !annListOpen;
+              setAnnListOpen(next);
+              setPathPanelOpen(false);
+              if (next) {
+                setAddAnnMode(false);
+                resetAddAnn();
+              }
+            }}
+            aria-label="Annotations"
+            title="Annotations"
+            style={railBtn(annListOpen)}
+          >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
               <rect x="3.5" y="5" width="17" height="12.5" rx="4" stroke="currentColor" strokeWidth="1.7" />
               <circle cx="8.6" cy="11.2" r="2" fill="currentColor" />
@@ -1219,7 +1241,20 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
             </svg>
           </button>
           {curPath.stops.length > 1 && (
-            <button onClick={() => { setPathPanelOpen((o) => !o); setAnnListOpen(false); }} aria-label="Path stops" title="Path stops" style={railBtn(pathPanelOpen)}>
+            <button
+              onClick={() => {
+                const next = !pathPanelOpen;
+                setPathPanelOpen(next);
+                setAnnListOpen(false);
+                if (next) {
+                  setAddAnnMode(false);
+                  resetAddAnn();
+                }
+              }}
+              aria-label="Path stops"
+              title="Path stops"
+              style={railBtn(pathPanelOpen)}
+            >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                 <path d="M4 18l6-9 5 6 5-9" stroke="currentColor" strokeWidth="1.8" strokeDasharray="4 3" />
                 <circle cx="4" cy="18" r="2.4" fill="currentColor" />
@@ -1281,6 +1316,9 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
                     const next = [...localAnns, ...imported];
                     setLocalAnns(next);
                     persistAnns(pathId, stopId, next);
+                    setAddAnnMode(false);
+                    resetAddAnn();
+                    setPathPanelOpen(false);
                     setAnnListOpen(true);
                   } catch { alert("Could not parse GeoJSON file."); }
                 };
@@ -1296,11 +1334,15 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
           </button>
           <button
             onClick={() => {
-              const on = !addAnnMode;
-              setAddAnnMode(on);
-              if (!on) resetAddAnn();
-              setAnnListOpen(false);
-              setPathPanelOpen(false);
+              const next = !addAnnMode;
+              setAddAnnMode(next);
+              if (!next) {
+                resetAddAnn();
+              } else {
+                setAnnListOpen(false);
+                setPathPanelOpen(false);
+                setOpenAnnId(null);
+              }
             }}
             aria-label="Add annotation"
             title="Add annotation"
@@ -1330,11 +1372,11 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
               flexDirection: "column",
               borderRadius: isMobile ? "16px 16px 0 0" : 20,
               overflow: "hidden",
-              background: "rgba(255,253,248,.96)",
+              background: "#FFFDF8",
               border: "1px solid rgba(11,15,14,.14)",
               backdropFilter: "blur(10px)",
               boxShadow: isMobile ? "0 -8px 32px -8px rgba(11,15,14,.8)" : "0 18px 42px -24px rgba(11,15,14,.8)",
-              zIndex: 600,
+              zIndex: isMobile ? 2500 : 600,
             }}
           >
             <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "12px 14px 12px 18px", borderBottom: "1px solid rgba(11,15,14,.1)" }}>
@@ -1531,11 +1573,11 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
               flexDirection: "column",
               borderRadius: isMobile ? "16px 16px 0 0" : 20,
               overflow: "hidden",
-              background: "rgba(255,253,248,.96)",
+              background: "#FFFDF8",
               border: "1px solid rgba(11,15,14,.14)",
               backdropFilter: "blur(10px)",
               boxShadow: isMobile ? "0 -8px 32px -8px rgba(11,15,14,.8)" : "0 18px 42px -24px rgba(11,15,14,.8)",
-              zIndex: 600,
+              zIndex: isMobile ? 2500 : 600,
             }}
           >
             <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "12px 14px 12px 18px", borderBottom: "1px solid rgba(11,15,14,.1)" }}>
@@ -1880,7 +1922,12 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
       )}
 
       {/* ── Bottom-left: Compass + YAW / PITCH + share (responsive mobile layout) ─ */}
-      <div className="gp-bottom-controls">
+      <div
+        className="gp-bottom-controls"
+        style={{
+          display: isMobile && (annListOpen || pathPanelOpen || openAnn !== null || addAnnMode) ? "none" : undefined,
+        }}
+      >
         {/* Compass / North arrow with click menu */}
         <div style={{ position: "relative" }}>
           {compassMenuOpen && (
@@ -2093,41 +2140,152 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
 
       {/* ── Add-annotation toolbar ─────────────────────────────────────────── */}
       {addAnnMode && (
-        <div className="gp-add-ann-toolbar" style={{ position: "absolute", bottom: "clamp(12px,2vw,24px)", left: "50%", transform: "translateX(-50%)", zIndex: 36, display: "flex", alignItems: "center", gap: 2, padding: "6px", borderRadius: 999, background: "rgba(255,253,248,.97)", border: "1px solid rgba(11,15,14,.18)", backdropFilter: "blur(12px)", boxShadow: "0 12px 32px -16px rgba(11,15,14,.85)", whiteSpace: "nowrap" }}>
-          {(["point", "line", "polygon"] as const).map((k) => (
-            <button key={k} onClick={() => {
-              setAddAnnKind(k);
-              setDraftPts([]);
-              setFormVisible(false);
-              setAnnForm(f => ({ ...f, subType: k === "point" ? "filled" : k === "line" ? "solid" : "outline" }));
-            }}
-              style={{ padding: "9px 18px", borderRadius: 999, border: "none", fontFamily: "'Instrument Sans',sans-serif", fontSize: 14, fontWeight: addAnnKind === k ? 700 : 500, cursor: "pointer", background: addAnnKind === k ? "#0B0F0E" : "transparent", color: addAnnKind === k ? "#FFFDF8" : "#3E4744", transition: "background .15s, color .15s" }}>
-              {k.charAt(0).toUpperCase() + k.slice(1)}
-            </button>
-          ))}
-          <div style={{ width: 1, height: 22, background: "rgba(11,15,14,.15)", margin: "0 6px", flexShrink: 0 }} />
-          {!formVisible && addAnnKind !== "point" && draftPts.length >= (addAnnKind === "polygon" ? 3 : 2) ? (
-            <button onClick={handleFinishDraft} style={{ padding: "9px 16px", borderRadius: 999, border: "none", background: "#C9F24D", fontFamily: "'Instrument Sans',sans-serif", fontSize: 14, fontWeight: 600, cursor: "pointer", color: "#0B0F0E" }}>
-              Done
-            </button>
-          ) : (
-            <span style={{ fontSize: 13, color: "#5A635F", padding: "0 8px", fontFamily: "'Instrument Sans',sans-serif" }}>
+        <div
+          className="gp-add-ann-toolbar"
+          style={{
+            position: "absolute",
+            bottom: isMobile ? "max(12px, env(safe-area-inset-bottom, 12px))" : "clamp(12px,2vw,24px)",
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 100,
+            display: "flex",
+            flexDirection: isMobile ? "column" : "row",
+            alignItems: "center",
+            gap: isMobile ? 6 : 2,
+            padding: isMobile ? "8px 12px" : "6px",
+            borderRadius: isMobile ? 18 : 999,
+            background: "rgba(255,253,248,.98)",
+            border: "1px solid rgba(11,15,14,.18)",
+            backdropFilter: "blur(14px)",
+            boxShadow: "0 14px 36px -12px rgba(11,15,14,.8)",
+            width: isMobile ? "calc(100vw - 24px)" : "auto",
+            maxWidth: isMobile ? 380 : undefined,
+            boxSizing: "border-box",
+          }}
+        >
+          {/* Controls row */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", gap: 4 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+              {(["point", "line", "polygon"] as const).map((k) => (
+                <button
+                  key={k}
+                  onClick={() => {
+                    setAddAnnKind(k);
+                    setDraftPts([]);
+                    setFormVisible(false);
+                    setAnnForm((f) => ({ ...f, subType: k === "point" ? "filled" : k === "line" ? "solid" : "outline" }));
+                  }}
+                  style={{
+                    padding: isMobile ? "6px 11px" : "9px 18px",
+                    borderRadius: 999,
+                    border: "none",
+                    fontFamily: "'Instrument Sans',sans-serif",
+                    fontSize: isMobile ? 12 : 14,
+                    fontWeight: addAnnKind === k ? 700 : 500,
+                    cursor: "pointer",
+                    background: addAnnKind === k ? "#0B0F0E" : "transparent",
+                    color: addAnnKind === k ? "#FFFDF8" : "#3E4744",
+                    transition: "background .15s, color .15s",
+                  }}
+                >
+                  {k.charAt(0).toUpperCase() + k.slice(1)}
+                </button>
+              ))}
+            </div>
+
+            {!isMobile && <div style={{ width: 1, height: 22, background: "rgba(11,15,14,.15)", margin: "0 6px", flexShrink: 0 }} />}
+
+            {!isMobile && (
+              <span style={{ fontSize: 13, color: "#5A635F", padding: "0 8px", fontFamily: "'Instrument Sans',sans-serif" }}>
+                {formVisible
+                  ? "Fill in the form →"
+                  : draftPts.length > 0 && addAnnKind !== "point"
+                    ? `${draftPts.length} pt${draftPts.length > 1 ? "s" : ""} — keep clicking`
+                    : "Click once in the panorama."}
+              </span>
+            )}
+
+            {!isMobile && <div style={{ width: 1, height: 22, background: "rgba(11,15,14,.15)", margin: "0 6px", flexShrink: 0 }} />}
+
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              {!formVisible && addAnnKind !== "point" && draftPts.length >= (addAnnKind === "polygon" ? 3 : 2) && (
+                <button
+                  onClick={handleFinishDraft}
+                  style={{
+                    padding: isMobile ? "6px 12px" : "9px 16px",
+                    borderRadius: 999,
+                    border: "none",
+                    background: "#C9F24D",
+                    fontFamily: "'Instrument Sans',sans-serif",
+                    fontSize: isMobile ? 12 : 14,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    color: "#0B0F0E",
+                  }}
+                >
+                  Done
+                </button>
+              )}
+              {draftPts.length > 0 && (
+                <button
+                  onClick={() => { setDraftPts([]); setFormVisible(false); }}
+                  style={{
+                    padding: isMobile ? "6px 10px" : "9px 16px",
+                    borderRadius: 999,
+                    border: "1px solid rgba(11,15,14,.22)",
+                    background: "transparent",
+                    fontFamily: "'Instrument Sans',sans-serif",
+                    fontSize: isMobile ? 12 : 14,
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    color: "#0B0F0E",
+                  }}
+                >
+                  Undo
+                </button>
+              )}
+              <button
+                onClick={resetAddAnn}
+                style={{
+                  padding: isMobile ? "6px 10px" : "9px 16px",
+                  borderRadius: 999,
+                  border: "1px solid rgba(11,15,14,.22)",
+                  background: "transparent",
+                  fontFamily: "'Instrument Sans',sans-serif",
+                  fontSize: isMobile ? 12 : 14,
+                  fontWeight: 500,
+                  cursor: "pointer",
+                  color: "#0B0F0E",
+                }}
+              >
+                Exit
+              </button>
+            </div>
+          </div>
+
+          {/* Helper hint for mobile */}
+          {isMobile && (
+            <div
+              style={{
+                fontSize: 11,
+                color: "#5A635F",
+                fontFamily: "'Instrument Sans',sans-serif",
+                textAlign: "center",
+                width: "100%",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                borderTop: "1px solid rgba(11,15,14,.08)",
+                paddingTop: 4,
+              }}
+            >
               {formVisible
                 ? "Fill in the form →"
                 : draftPts.length > 0 && addAnnKind !== "point"
-                  ? `${draftPts.length} pt${draftPts.length > 1 ? "s" : ""} — keep clicking`
-                  : "Click once in the panorama."}
-            </span>
+                  ? `${draftPts.length} pt${draftPts.length > 1 ? "s" : ""} placed · keep clicking`
+                  : "Tap in the panorama to place."}
+            </div>
           )}
-          <div style={{ width: 1, height: 22, background: "rgba(11,15,14,.15)", margin: "0 6px", flexShrink: 0 }} />
-          <button onClick={() => { setDraftPts([]); setFormVisible(false); }}
-            style={{ padding: "9px 16px", borderRadius: 999, border: "1px solid rgba(11,15,14,.22)", background: "transparent", fontFamily: "'Instrument Sans',sans-serif", fontSize: 14, fontWeight: 500, cursor: "pointer", color: "#0B0F0E" }}>
-            Undo
-          </button>
-          <button onClick={resetAddAnn}
-            style={{ padding: "9px 16px", borderRadius: 999, border: "1px solid rgba(11,15,14,.22)", background: "transparent", fontFamily: "'Instrument Sans',sans-serif", fontSize: 14, fontWeight: 500, cursor: "pointer", color: "#0B0F0E" }}>
-            Exit
-          </button>
         </div>
       )}
 

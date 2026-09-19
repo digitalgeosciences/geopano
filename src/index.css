@@ -48,6 +48,18 @@ button { font: inherit; cursor: pointer; }
 @keyframes gp-dash { to { stroke-dashoffset: -28; } }
 @keyframes gp-rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
 @keyframes gp-fade { from { opacity: 0; } to { opacity: 1; } }
+
+@keyframes gp-header-motion {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.gp-header-dynamic {
+  background: transparent !important;
+  animation: none !important;
+  border-bottom: 1px solid rgba(11, 15, 14, 0.08) !important;
+}
 @keyframes gp-rule { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes gp-mark { from { background-size: 0% 100%; } to { background-size: 100% 100%; } }
 @keyframes gp-sway { from { transform: translateX(0); } to { transform: translateX(-38%); } }
@@ -58,6 +70,27 @@ button { font: inherit; cursor: pointer; }
 }
 
 /* ── Leaflet map stop pins & tooltips ───────────────────────── */
+.leaflet-control-container .leaflet-top,
+.leaflet-control-container .leaflet-bottom {
+  z-index: 30 !important;
+}
+
+.leaflet-control-attribution {
+  z-index: 30 !important;
+}
+
+@media (max-width: 640px) {
+  .leaflet-control-attribution {
+    z-index: 20 !important;
+    opacity: 0.65;
+    font-size: 9px !important;
+    max-width: 70vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
 .leaflet-div-icon {
   background: transparent !important;
   border: none !important;

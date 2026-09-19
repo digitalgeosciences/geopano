@@ -95,6 +95,7 @@ function AddModal({
   onCreated,
   onNavTo360,
 }: AddModalProps) {
+  const isMobile = useIsMobile(640);
   const [tab, setTab] = useState<"stop" | "path">(initialTab || "stop");
 
   // Stop fields
@@ -143,14 +144,14 @@ function AddModal({
   }, [initialLat, initialLng, pickTarget]);
 
   const inp: React.CSSProperties = {
-    width: "100%", padding: "10px 14px", borderRadius: 10,
+    width: "100%", padding: isMobile ? "7px 10px" : "10px 14px", borderRadius: 10,
     border: "1px solid rgba(11,15,14,.18)", background: "#F7F6F1",
-    fontFamily: "'Instrument Sans',sans-serif", fontSize: 13,
+    fontFamily: "'Instrument Sans',sans-serif", fontSize: isMobile ? 12 : 13,
     color: "#0B0F0E", outline: "none", boxSizing: "border-box",
   };
   const lbl: React.CSSProperties = {
     display: "block", fontFamily: "'Instrument Sans',sans-serif",
-    fontSize: 10, fontWeight: 700, letterSpacing: ".08em", color: "#5A635F", marginBottom: 6,
+    fontSize: isMobile ? 9 : 10, fontWeight: 700, letterSpacing: ".08em", color: "#5A635F", marginBottom: isMobile ? 3 : 6,
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -254,20 +255,20 @@ function AddModal({
 
   return (
     <div
-      style={{ position: "fixed", inset: 0, zIndex: 800, background: "rgba(11,15,14,.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+      style={{ position: "fixed", inset: 0, zIndex: 800, background: "rgba(11,15,14,.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: isMobile ? 8 : 16 }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div style={{ width: "min(520px,100%)", maxHeight: "90vh", display: "flex", flexDirection: "column", borderRadius: 20, overflow: "hidden", background: "#FFFDF8", border: "1px solid #0B0F0E", boxShadow: "0 32px 72px -24px rgba(11,15,14,.9)" }}>
+      <div style={{ width: "min(520px,100%)", maxHeight: isMobile ? "94vh" : "90vh", display: "flex", flexDirection: "column", borderRadius: isMobile ? 16 : 20, overflow: "hidden", background: "#FFFDF8", border: "1px solid #0B0F0E", boxShadow: "0 32px 72px -24px rgba(11,15,14,.9)" }}>
         {/* Header */}
-        <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", borderBottom: "1px solid rgba(11,15,14,.1)" }}>
+        <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: isMobile ? "10px 14px" : "14px 18px", borderBottom: "1px solid rgba(11,15,14,.1)" }}>
           <div style={{ display: "flex", gap: 6 }}>
             {(["stop", "path"] as const).map((t) => (
               <button
                 key={t}
                 onClick={() => { setTab(t); setDoneInfo(null); }}
-                style={{ padding: "7px 18px", borderRadius: 999, border: "1px solid", borderColor: tab === t ? "#0B0F0E" : "rgba(11,15,14,.18)", background: tab === t ? "#0B0F0E" : "transparent", color: tab === t ? "#C9F24D" : "#5A635F", fontFamily: "'Instrument Sans',sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: ".12em", cursor: "pointer", transition: "all .15s" }}
+                style={{ padding: isMobile ? "6px 14px" : "7px 18px", borderRadius: 999, border: "1px solid", borderColor: tab === t ? "#0B0F0E" : "rgba(11,15,14,.18)", background: tab === t ? "#0B0F0E" : "transparent", color: tab === t ? "#C9F24D" : "#5A635F", fontFamily: "'Instrument Sans',sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: ".12em", cursor: "pointer", transition: "all .15s" }}
               >
-                {t === "stop" ? "NEW STOP / 360°" : "NEW PATH"}
+                {t === "stop" ? (isMobile ? "NEW STOP" : "NEW STOP / 360°") : (isMobile ? "NEW PATH" : "NEW PATH")}
               </button>
             ))}
           </div>
@@ -275,26 +276,26 @@ function AddModal({
         </div>
 
         {/* Scrollable Body */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "20px 22px" }}>
+        <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? "10px 14px" : "20px 22px" }}>
           {doneInfo ? (
             <div style={{ textAlign: "center", padding: "16px 0" }}>
-              <div style={{ width: 48, height: 48, borderRadius: 999, background: "#C9F24D", border: "1px solid #0B0F0E", display: "grid", placeItems: "center", margin: "0 auto 14px", fontSize: 24 }}>✓</div>
-              <div style={{ fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: 20, marginBottom: 6 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 999, background: "#C9F24D", border: "1px solid #0B0F0E", display: "grid", placeItems: "center", margin: "0 auto 12px", fontSize: 22 }}>✓</div>
+              <div style={{ fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: isMobile ? 18 : 20, marginBottom: 6 }}>
                 {doneInfo.stop ? "360° Stop Added Successfully" : "Path Created Successfully"}
               </div>
-              <p style={{ fontSize: 14, color: "#5A635F", margin: "0 auto 20px", maxWidth: 360 }}>
+              <p style={{ fontSize: 13, color: "#5A635F", margin: "0 auto 16px", maxWidth: 360 }}>
                 {doneInfo.stop
                   ? `"${doneInfo.stop.title}" is ready and pinned at ${doneInfo.stop.lat}, ${doneInfo.stop.lon}.`
                   : `"${doneInfo.path.name}" has been created and saved.`}
               </p>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 320, margin: "0 auto" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: 320, margin: "0 auto" }}>
                 {doneInfo.stop && (
                   <button
                     onClick={() => {
                       onNavTo360(doneInfo.path.id, doneInfo.stop!.id);
                     }}
-                    style={{ padding: "12px 24px", borderRadius: 999, background: "#C9F24D", color: "#0B0F0E", fontWeight: 700, fontSize: 14, border: "1px solid #0B0F0E", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "transform .1s" }}
+                    style={{ padding: "10px 20px", borderRadius: 999, background: "#C9F24D", color: "#0B0F0E", fontWeight: 700, fontSize: 13, border: "1px solid #0B0F0E", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "transform .1s" }}
                   >
                     <span>Open in 360° Viewer</span>
                     <span>↗</span>
@@ -302,26 +303,26 @@ function AddModal({
                 )}
                 <button
                   onClick={onClose}
-                  style={{ padding: "12px 24px", borderRadius: 999, background: "#0B0F0E", color: "#FFFDF8", fontWeight: 600, fontSize: 14, border: "none", cursor: "pointer" }}
+                  style={{ padding: "10px 20px", borderRadius: 999, background: "#0B0F0E", color: "#FFFDF8", fontWeight: 600, fontSize: 13, border: "none", cursor: "pointer" }}
                 >
                   View on Map
                 </button>
               </div>
             </div>
           ) : tab === "stop" ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 10 : 16 }}>
               {/* Existing Path assignment at the top */}
-              <div style={{ padding: "12px 14px", borderRadius: 12, background: "rgba(11,15,14,.03)", border: "1px solid rgba(11,15,14,.1)" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: destMode === "existing_path" ? 10 : 0 }}>
-                  <span style={lbl}>PATH ASSIGNMENT</span>
+              <div style={{ padding: isMobile ? "8px 10px" : "12px 14px", borderRadius: 12, background: "rgba(11,15,14,.03)", border: "1px solid rgba(11,15,14,.1)" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: destMode === "existing_path" ? (isMobile ? 6 : 10) : 0 }}>
+                  <span style={lbl}>{isMobile ? "PATH" : "PATH ASSIGNMENT"}</span>
                   <div style={{ display: "flex", gap: 4 }}>
                     <button
                       type="button"
                       onClick={() => setDestMode("existing_path")}
                       style={{
-                        padding: "4px 12px",
+                        padding: "3px 10px",
                         borderRadius: 999,
-                        fontSize: 11,
+                        fontSize: 10,
                         fontFamily: "'Instrument Sans',sans-serif",
                         fontWeight: 700,
                         border: destMode === "existing_path" ? "1.5px solid #0B0F0E" : "1px solid rgba(11,15,14,.18)",
@@ -330,15 +331,15 @@ function AddModal({
                         cursor: "pointer",
                       }}
                     >
-                      Existing Path
+                      {isMobile ? "Existing" : "Existing Path"}
                     </button>
                     <button
                       type="button"
                       onClick={() => setDestMode("standalone")}
                       style={{
-                        padding: "4px 12px",
+                        padding: "3px 10px",
                         borderRadius: 999,
-                        fontSize: 11,
+                        fontSize: 10,
                         fontFamily: "'Instrument Sans',sans-serif",
                         fontWeight: 700,
                         border: destMode === "standalone" ? "1.5px solid #0B0F0E" : "1px solid rgba(11,15,14,.18)",
@@ -354,7 +355,7 @@ function AddModal({
 
                 {destMode === "existing_path" ? (
                   <div>
-                    <span style={{ ...lbl, marginBottom: 4 }}>CHOOSE EXISTING PATH *</span>
+                    <span style={{ ...lbl, marginBottom: 3 }}>{isMobile ? "PATH *" : "CHOOSE EXISTING PATH *"}</span>
                     <select
                       value={selPathId}
                       onChange={(e) => setSelPathId(e.target.value)}
@@ -369,7 +370,7 @@ function AddModal({
                   </div>
                 ) : (
                   <div>
-                    <span style={{ ...lbl, marginBottom: 4 }}>LOCATION / OUTCROP AREA</span>
+                    <span style={{ ...lbl, marginBottom: 3 }}>{isMobile ? "LOCATION" : "LOCATION / OUTCROP AREA"}</span>
                     <input
                       value={newPathCity}
                       onChange={(e) => setNewPathCity(e.target.value)}
@@ -382,26 +383,26 @@ function AddModal({
 
               {/* Stop title */}
               <div>
-                <span style={lbl}>STOP / STATION NAME *</span>
+                <span style={lbl}>{isMobile ? "STOP NAME *" : "STOP / STATION NAME *"}</span>
                 <input value={stopName} onChange={(e) => setStopName(e.target.value)} placeholder="e.g. Al-Wahbah Crater Rim" style={inp} />
               </div>
 
               {/* 360 Panorama Source */}
-              <div style={{ padding: "14px 16px", borderRadius: 14, background: "rgba(11,15,14,.03)", border: "1px solid rgba(11,15,14,.1)" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-                  <span style={lbl}>360° EQUIRECTANGULAR PANORAMA</span>
+              <div style={{ padding: isMobile ? "8px 10px" : "14px 16px", borderRadius: 12, background: "rgba(11,15,14,.03)", border: "1px solid rgba(11,15,14,.1)" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: isMobile ? 6 : 10 }}>
+                  <span style={lbl}>{isMobile ? "360° PHOTO" : "360° EQUIRECTANGULAR PANORAMA"}</span>
                   <div style={{ display: "flex", gap: 4 }}>
                     <button
                       type="button"
                       onClick={() => setPanoMode("upload")}
-                      style={{ padding: "4px 10px", borderRadius: 6, fontSize: 10, fontFamily: "'Instrument Sans',sans-serif", fontWeight: 700, border: "1px solid", borderColor: panoMode === "upload" ? "#0B0F0E" : "transparent", background: panoMode === "upload" ? "#0B0F0E" : "transparent", color: panoMode === "upload" ? "#C9F24D" : "#5A635F", cursor: "pointer" }}
+                      style={{ padding: "3px 8px", borderRadius: 6, fontSize: 9, fontFamily: "'Instrument Sans',sans-serif", fontWeight: 700, border: "1px solid", borderColor: panoMode === "upload" ? "#0B0F0E" : "transparent", background: panoMode === "upload" ? "#0B0F0E" : "transparent", color: panoMode === "upload" ? "#C9F24D" : "#5A635F", cursor: "pointer" }}
                     >
                       FILE
                     </button>
                     <button
                       type="button"
                       onClick={() => setPanoMode("url")}
-                      style={{ padding: "4px 10px", borderRadius: 6, fontSize: 10, fontFamily: "'Instrument Sans',sans-serif", fontWeight: 700, border: "1px solid", borderColor: panoMode === "url" ? "#0B0F0E" : "transparent", background: panoMode === "url" ? "#0B0F0E" : "transparent", color: panoMode === "url" ? "#C9F24D" : "#5A635F", cursor: "pointer" }}
+                      style={{ padding: "3px 8px", borderRadius: 6, fontSize: 9, fontFamily: "'Instrument Sans',sans-serif", fontWeight: 700, border: "1px solid", borderColor: panoMode === "url" ? "#0B0F0E" : "transparent", background: panoMode === "url" ? "#0B0F0E" : "transparent", color: panoMode === "url" ? "#C9F24D" : "#5A635F", cursor: "pointer" }}
                     >
                       URL
                     </button>
@@ -410,22 +411,24 @@ function AddModal({
 
                 {panoMode === "upload" ? (
                   <div>
-                    <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "16px 14px", border: "1.5px dashed rgba(11,15,14,.25)", borderRadius: 10, background: "#FFFDF8", cursor: "pointer", transition: "border .15s" }}>
+                    <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: isMobile ? "8px 10px" : "16px 14px", border: "1.5px dashed rgba(11,15,14,.25)", borderRadius: 10, background: "#FFFDF8", cursor: "pointer", transition: "border .15s" }}>
                       <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileChange} style={{ display: "none" }} />
-                      <div style={{ width: 32, height: 32, borderRadius: 999, background: "#C9F24D", display: "grid", placeItems: "center", border: "1px solid #0B0F0E", marginBottom: 6 }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 15V3M8 7l4-4 4 4" stroke="#0B0F0E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /><path d="M20 17v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2" stroke="#0B0F0E" strokeWidth="1.8" strokeLinecap="round" /></svg>
+                      <div style={{ width: isMobile ? 24 : 32, height: isMobile ? 24 : 32, borderRadius: 999, background: "#C9F24D", display: "grid", placeItems: "center", border: "1px solid #0B0F0E", marginBottom: isMobile ? 3 : 6 }}>
+                        <svg width={isMobile ? 12 : 16} height={isMobile ? 12 : 16} viewBox="0 0 24 24" fill="none"><path d="M12 15V3M8 7l4-4 4 4" stroke="#0B0F0E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /><path d="M20 17v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2" stroke="#0B0F0E" strokeWidth="1.8" strokeLinecap="round" /></svg>
                       </div>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "#0B0F0E" }}>
-                        {panoFile ? panoFile.name : "Choose 360° Photo (.jpg / .png)"}
+                      <span style={{ fontSize: isMobile ? 11 : 13, fontWeight: 600, color: "#0B0F0E" }}>
+                        {panoFile ? panoFile.name : (isMobile ? "Choose 360° Photo" : "Choose 360° Photo (.jpg / .png)")}
                       </span>
-                      <span style={{ fontSize: 11, color: "#5A635F", marginTop: 2 }}>
-                        {panoFile ? `${(panoFile.size / 1024 / 1024).toFixed(2)} MB — Ready to view in 360°` : "Equirectangular 2:1 image recommended"}
-                      </span>
+                      {!isMobile && (
+                        <span style={{ fontSize: 11, color: "#5A635F", marginTop: 2 }}>
+                          {panoFile ? `${(panoFile.size / 1024 / 1024).toFixed(2)} MB — Ready to view in 360°` : "Equirectangular 2:1 image recommended"}
+                        </span>
+                      )}
                     </label>
                     {panoPreview && (
-                      <div style={{ marginTop: 10, position: "relative", height: 80, borderRadius: 8, overflow: "hidden", border: "1px solid rgba(11,15,14,.15)" }}>
+                      <div style={{ marginTop: 6, position: "relative", height: isMobile ? 50 : 80, borderRadius: 8, overflow: "hidden", border: "1px solid rgba(11,15,14,.15)" }}>
                         <img src={panoPreview} alt="Panorama preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                        <span style={{ position: "absolute", bottom: 6, right: 8, background: "rgba(11,15,14,.75)", color: "#C9F24D", padding: "2px 6px", borderRadius: 4, fontSize: 9, fontFamily: "'Instrument Sans',sans-serif", fontWeight: 700 }}>360° LOADED</span>
+                        <span style={{ position: "absolute", bottom: 4, right: 6, background: "rgba(11,15,14,.75)", color: "#C9F24D", padding: "1px 5px", borderRadius: 4, fontSize: 8, fontFamily: "'Instrument Sans',sans-serif", fontWeight: 700 }}>360° LOADED</span>
                       </div>
                     )}
                   </div>
@@ -437,101 +440,105 @@ function AddModal({
                       placeholder="https://... or /uploads/sp00001.jpg"
                       style={inp}
                     />
-                    <span style={{ display: "block", fontSize: 11, color: "#5A635F", marginTop: 4 }}>
-                      Leave blank to use the default high-resolution geological panorama.
-                    </span>
+                    {!isMobile && (
+                      <span style={{ display: "block", fontSize: 11, color: "#5A635F", marginTop: 4 }}>
+                        Leave blank to use the default high-resolution geological panorama.
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
 
               {/* Coordinates */}
               <div>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
                   <span style={lbl}>COORDINATES *</span>
                   <button
                     type="button"
                     onClick={() => onPickOnMap({ tab: "stop" })}
-                    style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid rgba(11,15,14,.2)", background: "#FFFDF8", cursor: "pointer", fontFamily: "'Instrument Sans',sans-serif", fontWeight: 600, fontSize: 11, color: "#0B0F0E", display: "flex", alignItems: "center", gap: 5 }}
+                    style={{ padding: "3px 8px", borderRadius: 6, border: "1px solid rgba(11,15,14,.2)", background: "#FFFDF8", cursor: "pointer", fontFamily: "'Instrument Sans',sans-serif", fontWeight: 600, fontSize: 10, color: "#0B0F0E", display: "flex", alignItems: "center", gap: 4 }}
                   >
                     <span>📍</span>
-                    <span>Pick on map</span>
+                    <span>{isMobile ? "Pick" : "Pick on map"}</span>
                   </button>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: isMobile ? 8 : 12 }}>
                   <div>
-                    <input value={lat} onChange={(e) => setLat(e.target.value)} placeholder="Latitude (e.g. 24.5281)" style={inp} />
+                    <input value={lat} onChange={(e) => setLat(e.target.value)} placeholder={isMobile ? "Lat" : "Latitude (e.g. 24.5281)"} style={inp} />
                   </div>
                   <div>
-                    <input value={lng} onChange={(e) => setLng(e.target.value)} placeholder="Longitude (e.g. 46.3950)" style={inp} />
+                    <input value={lng} onChange={(e) => setLng(e.target.value)} placeholder={isMobile ? "Lng" : "Longitude (e.g. 46.3950)"} style={inp} />
                   </div>
                 </div>
               </div>
 
               {/* Geological notes */}
               <div>
-                <span style={lbl}>DESCRIPTION / FIELD OBSERVATIONS</span>
+                <span style={lbl}>{isMobile ? "NOTES" : "DESCRIPTION / FIELD OBSERVATIONS"}</span>
                 <textarea
                   value={blurb}
                   onChange={(e) => setBlurb(e.target.value)}
-                  placeholder="Lithology, stratigraphic unit, jointing, dip/strike notes..."
-                  rows={2}
+                  placeholder={isMobile ? "Geological notes..." : "Lithology, stratigraphic unit, jointing, dip/strike notes..."}
+                  rows={isMobile ? 1 : 2}
                   style={{ ...inp, resize: "vertical" }}
                 />
               </div>
 
               {/* Submit button */}
-              <div style={{ paddingTop: 4 }}>
+              <div style={{ paddingTop: 2 }}>
                 <button
                   type="button"
                   onClick={handleStopSubmit}
                   disabled={!stopName.trim() || !lat.trim() || !lng.trim()}
                   style={{
-                    width: "100%", padding: "13px 0", borderRadius: 12, border: "1px solid #0B0F0E",
+                    width: "100%", padding: isMobile ? "10px 0" : "13px 0", borderRadius: 10, border: "1px solid #0B0F0E",
                     background: (!stopName.trim() || !lat.trim() || !lng.trim()) ? "rgba(11,15,14,.1)" : "#C9F24D",
                     color: (!stopName.trim() || !lat.trim() || !lng.trim()) ? "#9AA39E" : "#0B0F0E",
-                    fontWeight: 700, fontSize: 14, cursor: (!stopName.trim() || !lat.trim() || !lng.trim()) ? "not-allowed" : "pointer",
+                    fontWeight: 700, fontSize: isMobile ? 13 : 14, cursor: (!stopName.trim() || !lat.trim() || !lng.trim()) ? "not-allowed" : "pointer",
                     fontFamily: "inherit", transition: "background .15s",
                   }}
                 >
-                  Submit Stop &amp; 360° Panorama
+                  {isMobile ? "Submit Stop" : "Submit Stop & 360° Panorama"}
                 </button>
               </div>
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 10 : 16 }}>
               {/* Path metadata */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: isMobile ? 8 : 12 }}>
                 <div>
-                  <span style={lbl}>PATH NAME *</span>
+                  <span style={lbl}>{isMobile ? "PATH *" : "PATH NAME *"}</span>
                   <input
                     value={pathName}
                     onChange={(e) => setPathName(e.target.value)}
-                    placeholder="e.g. Tuwaiq Escarpment Traverse"
+                    placeholder="e.g. Tuwaiq Escarpment"
                     style={inp}
                   />
                 </div>
                 <div>
-                  <span style={lbl}>REGION / CITY *</span>
+                  <span style={lbl}>{isMobile ? "REGION *" : "REGION / CITY *"}</span>
                   <input
                     value={pathCity}
                     onChange={(e) => setPathCity(e.target.value)}
-                    placeholder="e.g. Riyadh, Saudi Arabia"
+                    placeholder="e.g. Riyadh, SA"
                     style={inp}
                   />
                 </div>
               </div>
 
               {/* Traverse Stops Header */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 8, borderTop: "1px solid rgba(11,15,14,.08)" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 4, borderTop: "1px solid rgba(11,15,14,.08)" }}>
                 <div>
-                  <span style={{ ...lbl, marginBottom: 2 }}>TRAVERSE STOPS (AT LEAST 2 REQUIRED) *</span>
-                  <div style={{ fontSize: 11, color: "#5A635F" }}>
-                    A path connects multiple field stops. Add at least two stops along this traverse.
-                  </div>
+                  <span style={{ ...lbl, marginBottom: 1 }}>{isMobile ? "STOPS (MIN 2) *" : "TRAVERSE STOPS (AT LEAST 2 REQUIRED) *"}</span>
+                  {!isMobile && (
+                    <div style={{ fontSize: 11, color: "#5A635F" }}>
+                      A path connects multiple field stops. Add at least two stops along this traverse.
+                    </div>
+                  )}
                 </div>
                 <span
                   style={{
-                    padding: "3px 8px",
+                    padding: "2px 8px",
                     borderRadius: 999,
                     fontSize: 10,
                     fontWeight: 700,
@@ -546,30 +553,30 @@ function AddModal({
               </div>
 
               {/* Stop Cards */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 8 : 12 }}>
                 {pathStops.map((ps, idx) => {
                   const isReady = ps.title.trim() && !isNaN(parseFloat(ps.lat)) && !isNaN(parseFloat(ps.lng));
                   return (
                     <div
                       key={ps.id}
                       style={{
-                        padding: "14px 16px",
-                        borderRadius: 14,
+                        padding: isMobile ? "8px 10px" : "14px 16px",
+                        borderRadius: 12,
                         border: isReady ? "1px solid rgba(11,15,14,.2)" : "1px dashed rgba(11,15,14,.25)",
                         background: isReady ? "rgba(201,242,77,.06)" : "#FDFCFA",
                       }}
                     >
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: isMobile ? 6 : 10 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                           <span
                             style={{
-                              width: 22,
-                              height: 22,
+                              width: 20,
+                              height: 20,
                               borderRadius: 999,
                               background: isReady ? "#C9F24D" : "#0B0F0E",
                               color: isReady ? "#0B0F0E" : "#FFFDF8",
                               border: "1px solid #0B0F0E",
-                              fontSize: 11,
+                              fontSize: 10,
                               fontWeight: 700,
                               display: "grid",
                               placeItems: "center",
@@ -577,15 +584,15 @@ function AddModal({
                           >
                             {idx + 1}
                           </span>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: "#0B0F0E" }}>
-                            Stop {idx + 1} {idx < 2 ? "(Required)" : "(Optional)"}
+                          <span style={{ fontSize: isMobile ? 12 : 13, fontWeight: 700, color: "#0B0F0E" }}>
+                            {isMobile ? `Stop ${idx + 1}` : `Stop ${idx + 1} ${idx < 2 ? "(Required)" : "(Optional)"}`}
                           </span>
                         </div>
                         {pathStops.length > 2 && (
                           <button
                             type="button"
                             onClick={() => setPathStops((prev) => prev.filter((_, i) => i !== idx))}
-                            style={{ ...closeBtn, width: 22, height: 22 }}
+                            style={{ ...closeBtn, width: 20, height: 20 }}
                             title="Remove this stop"
                           >
                             <CloseX />
@@ -593,41 +600,41 @@ function AddModal({
                         )}
                       </div>
 
-                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 6 : 10 }}>
                         <div>
-                          <span style={{ ...lbl, marginBottom: 4 }}>STOP NAME *</span>
+                          <span style={{ ...lbl, marginBottom: 3 }}>STOP NAME *</span>
                           <input
                             value={ps.title}
                             onChange={(e) => updatePathStop(idx, { title: e.target.value })}
-                            placeholder={`e.g. Outcrop Station ${idx + 1}`}
+                            placeholder={`e.g. Stop ${idx + 1}`}
                             style={inp}
                           />
                         </div>
 
                         <div>
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 3 }}>
                             <span style={lbl}>COORDINATES *</span>
                             <button
                               type="button"
                               onClick={() => {
                                 onPickOnMap({ tab: "path", stopIdx: idx });
                               }}
-                              style={{ padding: "3px 8px", borderRadius: 6, border: "1px solid rgba(11,15,14,.18)", background: "#FFFDF8", cursor: "pointer", fontSize: 11, fontWeight: 600, color: "#0B0F0E" }}
+                              style={{ padding: "2px 6px", borderRadius: 6, border: "1px solid rgba(11,15,14,.18)", background: "#FFFDF8", cursor: "pointer", fontSize: 10, fontWeight: 600, color: "#0B0F0E" }}
                             >
-                              📍 Pick on map
+                              📍 {isMobile ? "Pick" : "Pick on map"}
                             </button>
                           </div>
-                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: isMobile ? 8 : 10 }}>
                             <input
                               value={ps.lat}
                               onChange={(e) => updatePathStop(idx, { lat: e.target.value })}
-                              placeholder="Lat (e.g. 24.528)"
+                              placeholder="Lat (24.52)"
                               style={inp}
                             />
                             <input
                               value={ps.lng}
                               onChange={(e) => updatePathStop(idx, { lng: e.target.value })}
-                              placeholder="Lng (e.g. 46.395)"
+                              placeholder="Lng (46.39)"
                               style={inp}
                             />
                           </div>
@@ -635,9 +642,9 @@ function AddModal({
 
                         {/* Panorama file */}
                         <div>
-                          <span style={{ ...lbl, marginBottom: 4 }}>360° PANORAMA PHOTO (OPTIONAL)</span>
-                          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                            <label style={{ flex: 1, padding: "8px 12px", border: "1px solid rgba(11,15,14,.18)", borderRadius: 8, background: "#FFFDF8", cursor: "pointer", fontSize: 12, color: ps.panoFile ? "#0B0F0E" : "#5A635F", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          <span style={{ ...lbl, marginBottom: 3 }}>{isMobile ? "360° PHOTO" : "360° PANORAMA PHOTO (OPTIONAL)"}</span>
+                          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                            <label style={{ flex: 1, padding: isMobile ? "5px 8px" : "8px 12px", border: "1px solid rgba(11,15,14,.18)", borderRadius: 8, background: "#FFFDF8", cursor: "pointer", fontSize: isMobile ? 11 : 12, color: ps.panoFile ? "#0B0F0E" : "#5A635F", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                               <input
                                 type="file"
                                 accept="image/jpeg,image/png,image/webp"
@@ -650,10 +657,10 @@ function AddModal({
                                   }
                                 }}
                               />
-                              {ps.panoFile ? `✓ ${ps.panoFile.name}` : "Choose 360° photo (.jpg / .png)"}
+                              {ps.panoFile ? `✓ ${ps.panoFile.name}` : (isMobile ? "Choose photo" : "Choose 360° photo (.jpg / .png)")}
                             </label>
                             {ps.panoPreview && (
-                              <img src={ps.panoPreview} alt="" style={{ width: 36, height: 28, borderRadius: 4, objectFit: "cover", border: "1px solid #0B0F0E" }} />
+                              <img src={ps.panoPreview} alt="" style={{ width: 32, height: 24, borderRadius: 4, objectFit: "cover", border: "1px solid #0B0F0E" }} />
                             )}
                           </div>
                         </div>
@@ -673,12 +680,12 @@ function AddModal({
                   ])
                 }
                 style={{
-                  padding: "9px 14px",
-                  borderRadius: 10,
+                  padding: isMobile ? "7px 12px" : "9px 14px",
+                  borderRadius: 8,
                   border: "1px dashed rgba(11,15,14,.3)",
                   background: "#FFFDF8",
                   cursor: "pointer",
-                  fontSize: 12,
+                  fontSize: isMobile ? 11 : 12,
                   fontWeight: 600,
                   color: "#14504A",
                   display: "flex",
@@ -687,7 +694,7 @@ function AddModal({
                   gap: 6,
                 }}
               >
-                + Add Another Stop to Path
+                {isMobile ? "+ Add Stop" : "+ Add Another Stop to Path"}
               </button>
 
               {/* Submit Path button */}
@@ -696,8 +703,8 @@ function AddModal({
                 onClick={handlePathSubmit}
                 disabled={!pathName.trim() || !pathCity.trim() || validStopsCount < 2}
                 style={{
-                  padding: "13px 0",
-                  borderRadius: 12,
+                  padding: isMobile ? "10px 0" : "13px 0",
+                  borderRadius: 10,
                   border: "1px solid #0B0F0E",
                   background:
                     !pathName.trim() || !pathCity.trim() || validStopsCount < 2
@@ -708,19 +715,19 @@ function AddModal({
                       ? "#9AA39E"
                       : "#0B0F0E",
                   fontWeight: 700,
-                  fontSize: 14,
+                  fontSize: isMobile ? 13 : 14,
                   cursor:
                     !pathName.trim() || !pathCity.trim() || validStopsCount < 2
                       ? "not-allowed"
                       : "pointer",
                   fontFamily: "inherit",
                   transition: "background .15s",
-                  marginTop: 4,
+                  marginTop: 2,
                 }}
               >
                 {validStopsCount < 2
-                  ? "At Least 2 Stops Required to Create Path"
-                  : `Create Path with ${validStopsCount} Stops`}
+                  ? (isMobile ? "Min 2 Stops Required" : "At Least 2 Stops Required to Create Path")
+                  : (isMobile ? `Create Path (${validStopsCount} Stops)` : `Create Path with ${validStopsCount} Stops`)}
               </button>
             </div>
           )}
@@ -805,8 +812,8 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
   // popover shared style (in mobile view, exactly 1/3 of the view, not more)
   const popoverStyle = (topOffset = 0): React.CSSProperties =>
     isMobile
-      ? { position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 600, borderRadius: "16px 16px 0 0", height: "33.33vh", maxHeight: "33.33vh", minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column", background: "rgba(255,253,248,.99)", border: "1px solid rgba(11,15,14,.14)", backdropFilter: "blur(16px)", boxShadow: "0 -8px 32px -8px rgba(11,15,14,.3)" }
-      : { position: "absolute", left: 52, top: topOffset, width: 300, borderRadius: 16, overflow: "hidden", background: "rgba(255,253,248,.97)", border: "1px solid rgba(11,15,14,.14)", backdropFilter: "blur(12px)", boxShadow: "0 12px 32px -16px rgba(11,15,14,.7)" };
+      ? { position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 2000, borderRadius: "16px 16px 0 0", height: "33.33vh", maxHeight: "33.33vh", minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column", background: "#FFFDF8", border: "1px solid rgba(11,15,14,.18)", boxShadow: "0 -12px 40px -8px rgba(11,15,14,.45)" }
+      : { position: "absolute", left: 52, top: topOffset, width: 300, borderRadius: 16, overflow: "hidden", background: "rgba(255,253,248,.97)", border: "1px solid rgba(11,15,14,.14)", backdropFilter: "blur(12px)", boxShadow: "0 12px 32px -16px rgba(11,15,14,.7)", zIndex: 600 };
 
   function applyBase(key: BaseKey, map: ReturnType<typeof window.L.map>) {
     const L = window.L;
@@ -900,18 +907,15 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
       drawMap(map, lg, pathIdxRef.current, stopIdxRef.current, queryRef.current);
     });
 
-    // Center on initial path/stop if specified, otherwise show all stops
-    const allStops = paths.flatMap((p) => p.stops.map((s) => s.ll as [number, number]));
+    // Center on initial path/stop if specified, otherwise default to Arabian Peninsula
     if (selectedPathId && initP >= 0 && selectedStopId && initS >= 0) {
       const currentPath = paths[initP];
       const targetStop = currentPath.stops[initS];
       if (targetStop) {
         map.setView(targetStop.ll as [number, number], 14);
       }
-    } else if (allStops.length > 0) {
-      map.fitBounds(allStops, { padding: [80, 80], maxZoom: 13 });
     } else {
-      map.setView([25, 42], 5);
+      map.setView([24.0, 45.0], isMobile ? 5 : 5.5);
     }
 
     drawMap(map, lg, pathIdxRef.current, stopIdxRef.current, queryRef.current);
@@ -966,12 +970,7 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
 
   function resetToAllStops() {
     if (!mapRef.current) return;
-    const allStops = paths.flatMap((p) => p.stops.map((s) => s.ll as [number, number]));
-    if (allStops.length > 0) {
-      mapRef.current.flyToBounds(allStops, { padding: [80, 80], maxZoom: 13, duration: 1.2 } as Parameters<typeof mapRef.current.flyToBounds>[1]);
-    } else {
-      mapRef.current.setView([25, 42], 5);
-    }
+    mapRef.current.flyTo([24.0, 45.0], isMobile ? 5 : 5.5, { duration: 1.2 });
     setPanel("none");
     window.history.replaceState(null, "", "#/map");
   }
@@ -1065,7 +1064,7 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
       )}
 
       {/* ── Left rail ──────────────────────────────────────────────────── */}
-      <div style={{ position: "absolute", left: "clamp(12px,2vw,24px)", top: "clamp(12px,2vw,24px)", zIndex: 500, display: "flex", flexDirection: "column", gap: 8, pointerEvents: "none" }}>
+      <div style={{ position: "absolute", left: "clamp(12px,2vw,24px)", top: "clamp(12px,2vw,24px)", zIndex: isMobile && panel !== "none" ? 2500 : 500, display: "flex", flexDirection: "column", gap: 8, pointerEvents: "none" }}>
 
         {/* Icon rail */}
         <div style={{ pointerEvents: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
@@ -1080,17 +1079,45 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
               <div style={{ ...popoverStyle(0), display: "flex", flexDirection: "column" }}>
                 {panel === "paths" ? (
                   <>
-                    {/* Header */}
-                    <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: isMobile ? "8px 14px 4px" : "12px 14px 8px" }}>
+                    {/* Header with New Path button and Close button */}
+                    <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: isMobile ? "8px 14px 4px" : "12px 14px 8px", gap: 8 }}>
                       <span style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "#3E4744" }}>PATHS · {filteredPaths.length}</span>
-                      <button onClick={() => setPanel("none")} style={closeBtn}><CloseX /></button>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <button
+                          onClick={() => {
+                            setAddModalTab("path");
+                            setAddModalOpen(true);
+                          }}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 4,
+                            padding: isMobile ? "4px 8px" : "5px 11px",
+                            borderRadius: 999,
+                            border: "1px solid #0B0F0E",
+                            background: "#C9F24D",
+                            color: "#0B0F0E",
+                            cursor: "pointer",
+                            fontSize: isMobile ? 10 : 11,
+                            fontWeight: 700,
+                            fontFamily: "'Instrument Sans',sans-serif",
+                            whiteSpace: "nowrap",
+                            transition: "all .15s",
+                          }}
+                          title="New Path"
+                        >
+                          <svg width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="#0B0F0E" strokeWidth="2.2" strokeLinecap="round" /></svg>
+                          <span>New Path</span>
+                        </button>
+                        <button onClick={() => setPanel("none")} style={closeBtn}><CloseX /></button>
+                      </div>
                     </div>
                     {/* Search inside popover */}
                     <div style={{ flexShrink: 0, paddingBottom: isMobile ? 4 : 10 }}>
                       {searchBar(pathSearch, (v) => { setPathSearch(v); setPathsExpanded(false); }, "Search paths…")}
                     </div>
                     {/* Path list */}
-                    <div className="gp-popover-scroll" style={{ flex: isMobile ? 1 : undefined, maxHeight: isMobile ? "none" : 260, paddingRight: 4 }}>
+                    <div className="gp-popover-scroll" style={{ flex: isMobile ? 1 : undefined, maxHeight: isMobile ? "none" : 300, paddingRight: 4 }}>
                       {visiblePaths.map((p) => {
                         const pi = paths.indexOf(p);
                         const on = pi === pathIdx;
@@ -1112,38 +1139,6 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
                           {pathsExpanded ? "SHOW LESS ↑" : `VIEW MORE (${filteredPaths.length - 5}) ↓`}
                         </button>
                       )}
-                    </div>
-
-                    {/* Create new path button */}
-                    <div style={{ flexShrink: 0, padding: "8px 14px 10px", borderTop: "1px solid rgba(11,15,14,.07)" }}>
-                      <button
-                        onClick={() => {
-                          setAddModalTab("path");
-                          setAddModalOpen(true);
-                        }}
-                        style={{
-                          width: "100%",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: 6,
-                          padding: "8px 12px",
-                          borderRadius: 999,
-                          border: "1px solid rgba(11,15,14,.18)",
-                          background: "#FFFDF8",
-                          cursor: "pointer",
-                          fontSize: 12,
-                          fontWeight: 600,
-                          color: "#0B0F0E",
-                          fontFamily: "inherit",
-                          transition: "all .15s",
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = "#C9F24D"; e.currentTarget.style.borderColor = "#0B0F0E"; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = "#FFFDF8"; e.currentTarget.style.borderColor = "rgba(11,15,14,.18)"; }}
-                      >
-                        <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
-                        Create new path
-                      </button>
                     </div>
                   </>
                 ) : (
@@ -1186,8 +1181,36 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
                       <button onClick={() => setPanel("none")} style={closeBtn}><CloseX /></button>
                     </div>
 
-                    {/* Add stop button at the top for existing path */}
-                    <div style={{ flexShrink: 0, padding: "8px 14px 6px", borderBottom: "1px solid rgba(11,15,14,.06)" }}>
+                    {/* Two action buttons: View 360 and Add a stop */}
+                    <div style={{ flexShrink: 0, padding: isMobile ? "6px 12px" : "8px 14px 6px", borderBottom: "1px solid rgba(11,15,14,.06)", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                      <button
+                        onClick={() => {
+                          onSelectStop(curPath.id, curStop.id);
+                          window.location.hash = `#/stop/${curPath.id}/${curStop.id}`;
+                        }}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 5,
+                          padding: isMobile ? "7px 8px" : "8px 12px",
+                          borderRadius: 8,
+                          background: "#C9F24D",
+                          border: "1px solid #0B0F0E",
+                          fontWeight: 700,
+                          fontSize: isMobile ? 11 : 12,
+                          color: "#0B0F0E",
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                          whiteSpace: "nowrap",
+                          transition: "transform .1s",
+                        }}
+                        title={`View "${curStop.title}" in 360°`}
+                      >
+                        <span>View 360°</span>
+                        <span>↗</span>
+                      </button>
+
                       <button
                         onClick={() => {
                           setAddModalTab("stop");
@@ -1195,20 +1218,20 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
                           setAddModalOpen(true);
                         }}
                         style={{
-                          width: "100%",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          gap: 6,
-                          padding: "7px 12px",
+                          gap: 5,
+                          padding: isMobile ? "7px 8px" : "8px 12px",
                           borderRadius: 8,
-                          border: "1px dashed rgba(11,15,14,.24)",
-                          background: "rgba(201,242,77,.18)",
+                          border: "1px dashed rgba(11,15,14,.28)",
+                          background: "#FFFDF8",
                           cursor: "pointer",
-                          fontSize: 12,
+                          fontSize: isMobile ? 11 : 12,
                           fontWeight: 600,
-                          color: "#14504A",
+                          color: "#0B0F0E",
                           fontFamily: "inherit",
+                          whiteSpace: "nowrap",
                           transition: "background .15s, border-color .15s",
                         }}
                         onMouseEnter={(e) => {
@@ -1216,19 +1239,20 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
                           e.currentTarget.style.borderColor = "#0B0F0E";
                         }}
                         onMouseLeave={(e) => {
-                          e.currentTarget.style.background = "rgba(201,242,77,.18)";
-                          e.currentTarget.style.borderColor = "rgba(11,15,14,.24)";
+                          e.currentTarget.style.background = "#FFFDF8";
+                          e.currentTarget.style.borderColor = "rgba(11,15,14,.28)";
                         }}
+                        title="Add a stop to this path"
                       >
-                        <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                        <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
                           <path d="M8 3v10M3 8h10" stroke="#0B0F0E" strokeWidth="2" strokeLinecap="round" />
                         </svg>
-                        Add stop to this path
+                        <span>Add a stop</span>
                       </button>
                     </div>
 
                     {/* Stops list */}
-                    <div className="gp-popover-scroll" style={{ flex: isMobile ? 1 : undefined, maxHeight: isMobile ? "none" : 220, paddingRight: 4 }}>
+                    <div className="gp-popover-scroll" style={{ flex: isMobile ? 1 : undefined, maxHeight: isMobile ? "none" : 260, paddingRight: 4 }}>
                       {visibleStops.map((s, si) => {
                         const active = si === stopIdx;
                         return (
@@ -1255,17 +1279,6 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
                         </button>
                       )}
                     </div>
-
-                    {/* CTA row */}
-                    <div style={{ flexShrink: 0, padding: isMobile ? "7px 14px 9px" : "10px 14px 14px", display: "flex", borderTop: "1px solid rgba(11,15,14,.08)" }}>
-                      <button onClick={() => {
-                        onSelectStop(curPath.id, curStop.id);
-                        window.location.hash = `#/stop/${curPath.id}/${curStop.id}`;
-                      }}
-                        style={{ width: "100%", padding: "9px 0", borderRadius: 999, background: "#C9F24D", border: "1px solid #0B0F0E", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
-                        View 360° ↗
-                      </button>
-                    </div>
                   </>
                 )}
               </div>
@@ -1280,11 +1293,11 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
 
             {panel === "annotations" && (
               <div style={{ ...popoverStyle(0), display: "flex", flexDirection: "column" }}>
-                <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px 8px" }}>
+                <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: isMobile ? "8px 14px 4px" : "12px 14px 8px" }}>
                   <span style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "#3E4744" }}>ANNOTATIONS · {filteredAnns.length}</span>
                   <button onClick={() => setPanel("none")} style={closeBtn}><CloseX /></button>
                 </div>
-                <div style={{ flexShrink: 0, paddingBottom: 10 }}>
+                <div style={{ flexShrink: 0, paddingBottom: isMobile ? 4 : 10 }}>
                   {searchBar(annSearch, (v) => { setAnnSearch(v); setAnnExpanded(false); }, "Search annotations…")}
                 </div>
                 <div className="gp-popover-scroll" style={{ flex: isMobile ? 1 : undefined, maxHeight: isMobile ? "none" : 240, paddingRight: 4 }}>
@@ -1404,36 +1417,37 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
         const { barPx, label } = computeScale(zoom, scaleLat);
         const fmtDeg = (val: number, pos: string, neg: string) => `${Math.abs(val).toFixed(4)}° ${val >= 0 ? pos : neg}`;
         const coordText = mouseCoords ? `${fmtDeg(mouseCoords.lat, "N", "S")}, ${fmtDeg(mouseCoords.lng, "E", "W")}` : "";
+        const hideOnMobileSheet = isMobile && panel !== "none";
         return (
           <div
             style={{
               position: "absolute",
               left: "clamp(12px,2vw,24px)",
               bottom: isMobile ? 28 : "clamp(12px,2vw,24px)",
-              zIndex: 500,
-              display: "flex",
+              zIndex: 50,
+              opacity: hideOnMobileSheet ? 0 : 1,
+              pointerEvents: hideOnMobileSheet ? "none" : "auto",
+              transform: hideOnMobileSheet ? "translateY(18px)" : "translateY(0)",
+              display: hideOnMobileSheet ? "none" : "flex",
               alignItems: "center",
               gap: 10,
-              padding: "6px 14px",
+              padding: isMobile ? "5px 10px" : "6px 14px",
               borderRadius: 999,
               background: "rgba(255,253,248,.92)",
               border: "1px solid rgba(11,15,14,.14)",
               backdropFilter: "blur(10px)",
               boxShadow: "0 6px 18px -6px rgba(11,15,14,.2)",
-              pointerEvents: "auto",
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ position: "relative", height: 8, width: barPx, flexShrink: 0 }}>
                 <div style={{ position: "absolute", left: 0, top: 0, width: 1.5, height: 8, background: "#0B0F0E", borderRadius: 1 }} />
-                <div style={{ position: "absolute", left: barPx / 2 - 0.75, top: 2, width: 1.5, height: 6, background: "#0B0F0E", borderRadius: 1 }} />
                 <div style={{ position: "absolute", right: 0, top: 0, width: 1.5, height: 8, background: "#0B0F0E", borderRadius: 1 }} />
-                <div style={{ position: "absolute", left: 0, top: 3, height: 2.5, width: barPx / 2, background: "#0B0F0E" }} />
-                <div style={{ position: "absolute", left: barPx / 2, top: 3, height: 2.5, width: barPx / 2, background: "rgba(11,15,14,.18)" }} />
+                <div style={{ position: "absolute", left: 0, right: 0, top: 3, height: 2.5, background: "#0B0F0E", borderRadius: 1 }} />
               </div>
               <span style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: ".04em", color: "#0B0F0E", whiteSpace: "nowrap" }}>{label}</span>
             </div>
-            {mouseCoords && (
+            {!isMobile && mouseCoords && (
               <>
                 <div style={{ width: 1, height: 12, background: "rgba(11,15,14,.15)", flexShrink: 0 }} />
                 <span style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 600, letterSpacing: ".02em", color: "#3E4744", whiteSpace: "nowrap" }}>

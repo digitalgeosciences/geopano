@@ -35,6 +35,7 @@ export default function Header({ view, onNav }: HeaderProps) {
   return (
     <>
       <header
+        className="gp-header-dynamic"
         style={{
           position: "sticky",
           top: 0,
@@ -44,7 +45,6 @@ export default function Header({ view, onNav }: HeaderProps) {
           justifyContent: "space-between",
           gap: 16,
           padding: isMobile ? "12px 16px" : "14px clamp(16px,4vw,56px)",
-          background: "rgba(244,242,237,.92)",
           backdropFilter: "blur(14px)",
           borderBottom: "1px solid rgba(11,15,14,.08)",
         }}
@@ -140,6 +140,35 @@ export default function Header({ view, onNav }: HeaderProps) {
             gap: 2,
           }}
         >
+          {/* Menu header with Close button */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 8px 8px", borderBottom: "1px solid rgba(11,15,14,.08)", marginBottom: 4 }}>
+            <span style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "#5A635F", textTransform: "uppercase" }}>
+              Menu
+            </span>
+            <button
+              onClick={() => setMenuOpen(false)}
+              aria-label="Close menu"
+              title="Close menu"
+              style={{
+                width: 24,
+                height: 24,
+                borderRadius: 999,
+                border: "1px solid rgba(11,15,14,.18)",
+                background: "#FFFDF8",
+                display: "grid",
+                placeItems: "center",
+                cursor: "pointer",
+                color: "#0B0F0E",
+                padding: 0,
+                transition: "background .15s",
+              }}
+            >
+              <svg width="10" height="10" viewBox="0 0 16 16" fill="none">
+                <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </button>
+          </div>
+
           {NAV_ITEMS.map((item) => {
             const active = view === item.view;
             return (
@@ -173,27 +202,51 @@ export default function Header({ view, onNav }: HeaderProps) {
 
           <div style={{ height: 1, background: "rgba(11,15,14,.08)", margin: "4px 4px" }} />
 
-          {/* Sign up / Log in moved inside menu bar */}
-          <button
-            onClick={() => handleNav("signup")}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: "100%",
-              padding: "10px 14px",
-              borderRadius: 12,
-              border: "1px solid #0B0F0E",
-              background: "#C9F24D",
-              color: "#0B0F0E",
-              fontSize: 13,
-              fontWeight: 700,
-              fontFamily: "'Instrument Sans',sans-serif",
-              cursor: "pointer",
-            }}
-          >
-            Sign up / Log in
-          </button>
+          {/* Two separate buttons for Sign up and Log in */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 2 }}>
+            <button
+              onClick={() => handleNav("signup")}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "100%",
+                padding: "9px 14px",
+                borderRadius: 12,
+                border: "1px solid #0B0F0E",
+                background: "#C9F24D",
+                color: "#0B0F0E",
+                fontSize: 13,
+                fontWeight: 700,
+                fontFamily: "'Instrument Sans',sans-serif",
+                cursor: "pointer",
+                transition: "transform .1s",
+              }}
+            >
+              Sign Up
+            </button>
+            <button
+              onClick={() => handleNav("signup")}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "100%",
+                padding: "8px 14px",
+                borderRadius: 12,
+                border: "1px solid rgba(11,15,14,.2)",
+                background: "#FFFDF8",
+                color: "#0B0F0E",
+                fontSize: 13,
+                fontWeight: 600,
+                fontFamily: "'Instrument Sans',sans-serif",
+                cursor: "pointer",
+                transition: "background .15s",
+              }}
+            >
+              Log In
+            </button>
+          </div>
         </div>
       )}
     </>

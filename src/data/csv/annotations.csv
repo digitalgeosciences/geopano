@@ -1,0 +1,7 @@
+annotation_id,title,stop_id,creator_id,creation_date,updated_date,type,note,yaw,pitch,icon,status
+ann-001,Visible bedding,stop-001,user-001,2026-09-01T08:15:00Z,,observation,Clear bedding can be seen across the exposed face.,132.5,4.2,marker,published
+ann-002,Weathered surface,stop-001,user-001,2026-09-01T08:18:00Z,,observation,Notice the difference between the fresh and weathered surfaces.,168.0,-8.0,marker,published
+ann-003,Layer boundary,stop-002,user-001,2026-09-01T08:40:00Z,,observation,A distinct boundary is visible between the two layers.,224.5,7.0,marker,published
+ann-004,Fracture,stop-002,user-001,2026-09-01T08:44:00Z,,observation,Prominent fracture cutting through the exposed beds.,252.0,2.5,marker,published
+ann-005,Erosional feature,stop-003,user-001,2026-09-01T09:12:00Z,,observation,Small erosional feature visible along the wadi wall.,91.0,-5.5,marker,published
+ann-006,Cliff exposure,stop-004,user-002,2026-09-05T09:52:00Z,,observation,Continuous exposure along the coastal cliff.,175.0,6.0,marker,draft

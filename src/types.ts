@@ -37,16 +37,22 @@ export interface Path {
 export interface LibraryItem {
   id: string;
   title: string;
-  country: string;
-  cat: string;
+  itemType: "stop" | "path" | "annotation";
+  location: string;
+  country?: string;
+  cat?: string;
   notes: number;
   pathName: string;
   blurb: string;
-  bg: string;
+  bg?: string;
   stopId: string | null;
   pathId: string | null;
-  hasImage: boolean;
+  annotationId?: string;
+  yaw?: number;
+  pitch?: number;
+  hasImage?: boolean;
   tags?: string[];
+  kind?: string;
 }
 
 export type View = "landing" | "map" | "library" | "stop" | "signup" | "about" | "terms" | "privacy";

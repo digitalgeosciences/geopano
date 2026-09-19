@@ -148,8 +148,9 @@ button { font: inherit; cursor: pointer; }
 /* ── StopViewer Mobile & Responsive Controls ───────────────────────── */
 .gp-viewer-main {
   position: relative;
-  height: calc(100vh - 135px);
-  height: calc(100dvh - 135px);
+  flex: 1;
+  min-height: 0;
+  width: 100%;
   overflow: hidden;
   background: #0B0F0E;
   touch-action: none !important;
@@ -176,20 +177,21 @@ button { font: inherit; cursor: pointer; }
   max-width: calc(100vw - 20px);
 }
 
-/* ── Page Footer: unified height & strictly 1 row ────────────────────────────── */
+/* ── Page Footer: unified compact height & strictly 1 row ────────────────────────────── */
 .gp-page-footer {
   border-top: 1px solid rgba(11, 15, 14, 0.1);
-  padding: 28px clamp(16px, 4vw, 56px);
+  padding: 12px clamp(16px, 3.5vw, 48px);
   max-width: 1200px;
   margin: 0 auto;
   display: flex !important;
   flex-direction: row !important;
   flex-wrap: nowrap !important;
-  gap: 16px;
+  gap: 12px;
   align-items: center;
   justify-content: space-between;
   font-family: 'Instrument Sans', sans-serif;
   font-size: 13px;
+  line-height: 1.4;
   white-space: nowrap !important;
   overflow: hidden;
   box-sizing: border-box;

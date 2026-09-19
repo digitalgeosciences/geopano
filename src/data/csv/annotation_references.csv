@@ -1,0 +1,5 @@
+reference_id,annotation_id,title,url,source,accessed_date
+ref-001,ann-001,Field Guide: Bedding and Stratification,https://example.org/geology/bedding,Example Geological Field Guide,2026-09-01
+ref-002,ann-003,Field Guide: Stratigraphic Contacts,https://example.org/geology/contacts,Example Geological Field Guide,2026-09-01
+ref-003,ann-004,Field Guide: Fractures and Joints,https://example.org/geology/fractures,Example Geological Field Guide,2026-09-01
+ref-004,ann-005,Field Guide: Erosional Features,https://example.org/geology/erosion,Example Geological Field Guide,2026-09-01

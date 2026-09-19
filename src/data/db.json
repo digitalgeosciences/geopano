@@ -9,19 +9,56 @@
         {
           "id": "sp00001",
           "title": "Qiddiya Descent A",
-          "ll": [24.52807809, 46.3950212],
+          "ll": [
+            24.52807809,
+            46.3950212
+          ],
           "lat": "24.5281° N",
           "lon": "46.3950° E",
           "blurb": "First outcrop station along the Qiddiya escarpment descent. Exposed sedimentary units of the Wajid and Khuff sequences characterise the plateau edge south-west of Riyadh.",
           "panorama": "/uploads/sp00001.jpg",
           "defaultYaw": 85,
           "defaultPitch": 14,
-          "annotations": []
+          "annotations": [
+            {
+              "kind": "point",
+              "subType": "filled",
+              "title": "Wajid Sandstone Escarpment",
+              "yaw": 85,
+              "pitch": 14,
+              "author": "Field Geology Unit",
+              "added": "2026-08-10",
+              "body": "Cross-bedded continental sandstone sequence exposed along the Tuwaiq Mountain escarpment rim.",
+              "tags": [
+                "Sedimentology",
+                "Escarpment"
+              ],
+              "color": "#C9F24D"
+            },
+            {
+              "kind": "line",
+              "subType": "dashed",
+              "title": "Escarpment Joint Traces",
+              "yaw": 62,
+              "pitch": 5,
+              "author": "Structural Survey",
+              "added": "2026-08-12",
+              "body": "Sub-vertical extensional fractures parallel to the main Tuwaiq escarpment trend.",
+              "tags": [
+                "Structural",
+                "Fault"
+              ],
+              "color": "#EF5350"
+            }
+          ]
         },
         {
           "id": "sp00002",
           "title": "Qiddiya Descent B",
-          "ll": [24.52816215, 46.39552972],
+          "ll": [
+            24.52816215,
+            46.39552972
+          ],
           "lat": "24.5282° N",
           "lon": "46.3955° E",
           "blurb": "Mid-slope station documenting the transition from the plateau caprock to the talus slope. Cross-bedded sandstone packages visible in the upper cliff face.",
@@ -33,7 +70,10 @@
         {
           "id": "sp00003",
           "title": "Qiddiya Descent C",
-          "ll": [24.52826183, 46.3962496],
+          "ll": [
+            24.52826183,
+            46.3962496
+          ],
           "lat": "24.5283° N",
           "lon": "46.3962° E",
           "blurb": "Lower escarpment exposure where jointing and erosional fluting in the sandstone record long-term weathering under an arid regime.",
@@ -45,7 +85,10 @@
         {
           "id": "sp00004",
           "title": "Qiddiya Descent D",
-          "ll": [24.52882854, 46.40062737],
+          "ll": [
+            24.52882854,
+            46.40062737
+          ],
           "lat": "24.5288° N",
           "lon": "46.4006° E",
           "blurb": "Base-of-slope station. Angular debris and desert varnish on fallen blocks provide evidence of episodic cliff retreat over the Quaternary.",
@@ -65,7 +108,10 @@
         {
           "id": "sp00005",
           "title": "Umm Jabal Lake",
-          "ll": [22.17167807, 46.71224495],
+          "ll": [
+            22.17167807,
+            46.71224495
+          ],
           "lat": "22.1717° N",
           "lon": "46.7122° E",
           "blurb": "Maar lake within the Harrat Kishb volcanic field — one of the few natural freshwater lakes in Saudi Arabia. The circular basin is a phreatomagmatic explosion crater now permanently filled with water.",
@@ -83,7 +129,10 @@
         {
           "id": "sp00006",
           "title": "Jabal KFUPM",
-          "ll": [26.31014648, 50.14218713],
+          "ll": [
+            26.31014648,
+            50.14218713
+          ],
           "lat": "26.3101° N",
           "lon": "50.1422° E",
           "blurb": "Rock outcrop near King Fahd University of Petroleum and Minerals. Jurassic carbonate units of the Dammam Formation are exposed here, documenting the shallow marine carbonate platform of the Eastern Arabian shelf.",
@@ -101,12 +150,46 @@
         {
           "id": "sp00007",
           "title": "Wabah Crater",
-          "ll": [22.90108618, 41.13916033],
+          "ll": [
+            22.90108618,
+            41.13916033
+          ],
           "lat": "22.9011° N",
           "lon": "41.1392° E",
           "blurb": "Maar crater approximately 250 m deep and 2 km wide in the Harrat Kishb volcanic field. Phreatomagmatic eruption ejected basement xenoliths now visible in the tuff ring walls surrounding the crater floor.",
           "panorama": "/uploads/sp00007.jpg",
-          "annotations": []
+          "annotations": [
+            {
+              "kind": "point",
+              "subType": "filled",
+              "title": "Phreatomagmatic Tuff Ring",
+              "yaw": 110,
+              "pitch": -10,
+              "author": "Volcanology Group",
+              "added": "2026-08-18",
+              "body": "Well-bedded basaltic surge deposits containing mantle peridotite xenoliths ejected during phreatomagmatic blast.",
+              "tags": [
+                "Volcanology",
+                "Maar"
+              ],
+              "color": "#C9F24D"
+            },
+            {
+              "kind": "polygon",
+              "subType": "outline",
+              "title": "Playa Salt Pan Floor",
+              "yaw": 180,
+              "pitch": -35,
+              "author": "Hydrology Survey",
+              "added": "2026-08-19",
+              "body": "Ephemeral saline pan accumulating halite and gypsum deposits at the crater bottom.",
+              "tags": [
+                "Geochemistry",
+                "Evaporite"
+              ],
+              "color": "#26A69A"
+            }
+          ]
         }
       ]
     },
@@ -119,7 +202,10 @@
         {
           "id": "sp00008",
           "title": "Richat Structure",
-          "ll": [21.08098363, -11.47453958],
+          "ll": [
+            21.08098363,
+            -11.47453958
+          ],
           "lat": "21.0810° N",
           "lon": "11.4745° W",
           "blurb": "The Eye of the Sahara — a 50 km diameter erosional dome exposing Proterozoic basement through concentric rings of Palaeozoic sediments. Intrusive breccia pipes and carbonatite dykes visible at the centre.",
@@ -137,12 +223,61 @@
         {
           "id": "sp00009",
           "title": "Dadan",
-          "ll": [26.64926389, 37.92042222],
+          "ll": [
+            26.64926389,
+            37.92042222
+          ],
           "lat": "26.6493° N",
           "lon": "37.9204° E",
           "blurb": "Ancient capital of the Dadanite and Lihyanite kingdoms (9th–1st century BC). Rock-cut lion tombs and Dadanite inscriptions are carved into the Hisma sandstone cliffs of the AlUla valley.",
           "panorama": "/uploads/sp00009.jpg",
-          "annotations": []
+          "annotations": [
+            {
+              "kind": "point",
+              "subType": "filled",
+              "title": "Lion Tombs Facade",
+              "yaw": -45.2,
+              "pitch": 12.5,
+              "author": "Archaeology Unit",
+              "added": "2026-08-15",
+              "body": "Twin lion sculptures carved above the tomb entrance, dating to the Lihyanite period (5th–2nd century BC).",
+              "tags": [
+                "Heritage",
+                "Archaeology"
+              ],
+              "color": "#C9F24D"
+            },
+            {
+              "kind": "line",
+              "subType": "solid",
+              "title": "Dadanite Script Register",
+              "yaw": -32,
+              "pitch": 8,
+              "author": "Dr. Al-Zahrani",
+              "added": "2026-08-20",
+              "body": "Horizontal register of South Arabian monumental script recording votive dedications.",
+              "tags": [
+                "Epigraphy",
+                "Heritage"
+              ],
+              "color": "#FF7043"
+            },
+            {
+              "kind": "polygon",
+              "subType": "outline",
+              "title": "Hisma Sandstone Cliff",
+              "yaw": 15,
+              "pitch": 22,
+              "author": "Geopano Survey",
+              "added": "2026-08-22",
+              "body": "Massive Palaeozoic sandstone cliff face with tafoni weathering and vertical jointing.",
+              "tags": [
+                "Stratigraphy",
+                "Geology"
+              ],
+              "color": "#42A5F5"
+            }
+          ]
         }
       ]
     },
@@ -155,7 +290,10 @@
         {
           "id": "sp00010",
           "title": "Nabkha",
-          "ll": [25.31795593, 42.51813881],
+          "ll": [
+            25.31795593,
+            42.51813881
+          ],
           "lat": "25.3180° N",
           "lon": "42.5181° E",
           "blurb": "Nebkha dune mound anchored by xerophytic shrubs in the Araiq Addasm sand sea. Records aeolian sediment trapping dynamics and vegetation-dune interaction under hyper-arid conditions.",
@@ -269,10 +407,30 @@
     "lon": "46.3950° E",
     "feature": "Wajid & Khuff Formations",
     "stops": [
-      { "id": "sp00001", "title": "Qiddiya Descent A", "leftPct": 16, "topPct": 68 },
-      { "id": "sp00002", "title": "Qiddiya Descent B", "leftPct": 38, "topPct": 50 },
-      { "id": "sp00003", "title": "Qiddiya Descent C", "leftPct": 60, "topPct": 60 },
-      { "id": "sp00004", "title": "Qiddiya Descent D", "leftPct": 82, "topPct": 40 }
+      {
+        "id": "sp00001",
+        "title": "Qiddiya Descent A",
+        "leftPct": 16,
+        "topPct": 68
+      },
+      {
+        "id": "sp00002",
+        "title": "Qiddiya Descent B",
+        "leftPct": 38,
+        "topPct": 50
+      },
+      {
+        "id": "sp00003",
+        "title": "Qiddiya Descent C",
+        "leftPct": 60,
+        "topPct": 60
+      },
+      {
+        "id": "sp00004",
+        "title": "Qiddiya Descent D",
+        "leftPct": 82,
+        "topPct": 40
+      }
     ]
   }
 }

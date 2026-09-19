@@ -848,14 +848,14 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
   // ── render ────────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 57px)", background: "#0B0F0E" }}>
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, height: "100%", background: "#0B0F0E", overflow: "hidden" }}>
       <main
         className="gp-viewer-main"
         style={{
           position: "relative",
           flex: 1,
-          height: isMobile ? "calc(100dvh - 135px)" : "calc(100vh - 135px)",
-          minHeight: isMobile ? 420 : "calc(100vh - 135px)",
+          minHeight: 0,
+          width: "100%",
           overflow: "hidden",
           background: "#0B0F0E",
           touchAction: "none",

@@ -1,0 +1,5 @@
+image_id,annotation_id,image_url,caption,alt_text,sort_order
+img-001,ann-001,/media/annotations/bedding-closeup.jpg,Close-up of bedding,Close-up photograph showing bedding at Stop 1,1
+img-002,ann-003,/media/annotations/layer-boundary.jpg,Layer boundary detail,Detail photograph of the marked layer boundary,1
+img-003,ann-004,/media/annotations/fracture.jpg,Fracture detail,Close-up photograph of the fracture,1
+img-004,ann-006,/media/annotations/cliff.jpg,Cliff detail,Photograph of the coastal cliff exposure,1

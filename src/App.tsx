@@ -152,8 +152,19 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  const isFixedLayout = view === "map" || view === "stop";
+
   return (
-    <div style={{ minHeight: "100vh", background: "#F4F2ED" }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        height: isFixedLayout ? "100dvh" : "auto",
+        display: isFixedLayout ? "flex" : "block",
+        flexDirection: "column",
+        overflow: isFixedLayout ? "hidden" : "visible",
+        background: "#F4F2ED",
+      }}
+    >
       <Header view={view} onNav={handleNav} />
 
       {view === "landing" && <Landing onNav={handleNav} />}

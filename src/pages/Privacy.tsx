@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { View } from "../types";
 import PageFooter from "../components/PageFooter";
+import { useIsMobile } from "../hooks/useWindowWidth";
 
 interface Props {
   onNav: (v: View) => void;
@@ -128,92 +130,258 @@ We aim to respond to all requests within 30 days.`,
 ];
 
 export default function Privacy({ onNav }: Props) {
+  const isMobile = useIsMobile(768);
+  const [activeSec, setActiveSec] = useState<string>("1");
+
+  const scrollTo = (id: string) => {
+    setActiveSec(id);
+    const el = document.getElementById(`priv-section-${id}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
   return (
-    <main>
+    <main style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#F4F2ED" }}>
       {/* Header */}
-      <section style={{ maxWidth: 1200, margin: "0 auto", padding: "clamp(40px,5vw,80px) clamp(16px,4vw,56px) 0" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-          <span style={{ width: 32, height: 2, background: "#0B0F0E", display: "block" }} />
-          <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 11, letterSpacing: ".18em", textTransform: "uppercase", color: "#5A635F" }}>
-            Legal
+      <section style={{ maxWidth: 1200, width: "100%", margin: "0 auto", padding: isMobile ? "28px 16px 0" : "clamp(36px,5vw,72px) clamp(16px,4vw,56px) 0", boxSizing: "border-box" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+          <span style={{ width: 28, height: 2, background: "#0B0F0E", display: "block" }} />
+          <span style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "#5A635F" }}>
+            Legal Documentation
           </span>
         </div>
-        <h1 style={{ fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 800, fontSize: "clamp(36px,5vw,68px)", lineHeight: 0.94, letterSpacing: "-.04em", margin: "0 0 20px" }}>
+        <h1 style={{ fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 800, fontSize: "clamp(32px,5.5vw,64px)", lineHeight: 1.0, letterSpacing: "-.035em", margin: "0 0 16px", color: "#0B0F0E" }}>
           Privacy Policy
         </h1>
-        <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
-          <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 11, letterSpacing: ".14em", color: "#5A635F" }}>
-            EFFECTIVE DATE: 1 SEPTEMBER 2026
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <span style={{ display: "inline-flex", alignItems: "center", padding: "4px 10px", borderRadius: 999, background: "rgba(11,15,14,.06)", fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 600, color: "#3E4744" }}>
+            Effective: 1 September 2026
           </span>
-          <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 11, letterSpacing: ".14em", color: "#5A635F" }}>
-            VERSION 1.0
+          <span style={{ display: "inline-flex", alignItems: "center", padding: "4px 10px", borderRadius: 999, background: "rgba(11,15,14,.06)", fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 600, color: "#5A635F" }}>
+            Version 1.0
           </span>
         </div>
       </section>
 
-      {/* Divider */}
-      <div style={{ maxWidth: 1200, margin: "clamp(28px,3vw,48px) auto 0", padding: "0 clamp(16px,4vw,56px)" }}>
-        <div style={{ height: 1, background: "rgba(11,15,14,.1)" }} />
-      </div>
-
-      {/* Commitment band */}
-      <div style={{ background: "#14504A", color: "#FFFDF8", padding: "clamp(28px,4vw,48px) clamp(16px,4vw,56px)", margin: "0" }}>
+      {/* Commitment Banner */}
+      <div style={{ background: "#14504A", color: "#FFFDF8", margin: isMobile ? "24px 0 0" : "32px 0 0", padding: isMobile ? "22px 16px" : "36px clamp(16px,4vw,56px)" }}>
         <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-          <blockquote style={{ margin: 0, fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: "clamp(18px,2.5vw,30px)", letterSpacing: "-.025em", lineHeight: 1.3 }}>
+          <blockquote style={{ margin: 0, fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: "clamp(18px,2.8vw,28px)", letterSpacing: "-.02em", lineHeight: 1.35 }}>
             "We do not sell your data. We do not use your field content to train AI models. Your research is yours."
           </blockquote>
-          <p style={{ margin: "16px 0 0", fontSize: 14, color: "rgba(255,253,248,.65)", lineHeight: 1.6 }}>
-            This policy explains in plain language what we collect, why, and how you can control it.
+          <p style={{ margin: "12px 0 0", fontSize: 14, color: "rgba(255,253,248,.7)", lineHeight: 1.6 }}>
+            This policy explains in plain language what we collect, why, and how you can control your data.
           </p>
         </div>
       </div>
 
-      {/* Body */}
-      <section style={{ maxWidth: 1200, margin: "0 auto", padding: "clamp(28px,4vw,56px) clamp(16px,4vw,56px) clamp(48px,6vw,88px)", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,340px),1fr))", gap: "clamp(24px,4vw,80px)" }}>
-        {/* TOC sidebar */}
-        <div style={{ position: "sticky", top: 80, alignSelf: "start" }}>
-          <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10, letterSpacing: ".18em", color: "#5A635F", marginBottom: 16 }}>CONTENTS</div>
-          <nav style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            {SECTIONS.map((s) => (
-              <a
-                key={s.id}
-                href={`#priv-section-${s.id}`}
-                style={{ display: "flex", alignItems: "center", gap: 12, padding: "7px 0", color: "#3E4744", fontSize: 13, textDecoration: "none", borderBottom: "1px solid rgba(11,15,14,.06)" }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "#0B0F0E")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "#3E4744")}
-              >
-                <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 9, letterSpacing: ".12em", color: "#9AA39E", flexShrink: 0 }}>{s.id.padStart(2, "0")}</span>
-                {s.title}
-              </a>
-            ))}
-          </nav>
-          <button
-            onClick={() => onNav("terms")}
-            style={{ marginTop: 28, display: "flex", alignItems: "center", gap: 8, background: "none", border: "1px solid rgba(11,15,14,.18)", borderRadius: 999, padding: "10px 16px", cursor: "pointer", fontSize: 13, color: "#3E4744", fontFamily: "inherit", transition: "border-color .15s, color .15s" }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#0B0F0E"; e.currentTarget.style.color = "#0B0F0E"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(11,15,14,.18)"; e.currentTarget.style.color = "#3E4744"; }}
-          >
-            Terms of Service <span style={{ fontFamily: "'JetBrains Mono',monospace" }}>→</span>
-          </button>
-        </div>
-
-        {/* Sections */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 48 }}>
+      {/* Mobile Sticky Quick Jump Navigation */}
+      {isMobile && (
+        <div
+          style={{
+            position: "sticky",
+            top: 57,
+            zIndex: 40,
+            background: "rgba(244,242,237,.94)",
+            backdropFilter: "blur(10px)",
+            borderBottom: "1px solid rgba(11,15,14,.1)",
+            padding: "8px 16px",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            overflowX: "auto",
+            WebkitOverflowScrolling: "touch",
+            scrollbarWidth: "none",
+          }}
+        >
+          <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", color: "#5A635F", flexShrink: 0 }}>
+            Jump:
+          </span>
           {SECTIONS.map((s) => (
-            <div key={s.id} id={`priv-section-${s.id}`}>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 14, marginBottom: 14 }}>
-                <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10, letterSpacing: ".16em", color: "#C9F24D", background: "#0B0F0E", padding: "3px 8px", borderRadius: 4 }}>
-                  {s.id.padStart(2, "0")}
+            <button
+              key={s.id}
+              onClick={() => scrollTo(s.id)}
+              style={{
+                flexShrink: 0,
+                padding: "5px 12px",
+                borderRadius: 999,
+                fontSize: 12,
+                fontWeight: activeSec === s.id ? 700 : 500,
+                border: activeSec === s.id ? "1px solid #0B0F0E" : "1px solid rgba(11,15,14,.14)",
+                background: activeSec === s.id ? "#C9F24D" : "#FFFDF8",
+                color: "#0B0F0E",
+                cursor: "pointer",
+                transition: "all .15s",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {s.id}. {s.title}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Main Content Layout */}
+      <section
+        style={{
+          maxWidth: 1200,
+          width: "100%",
+          margin: "0 auto",
+          padding: isMobile ? "24px 16px 48px" : "clamp(36px,4vw,56px) clamp(16px,4vw,56px) clamp(48px,6vw,80px)",
+          display: isMobile ? "block" : "grid",
+          gridTemplateColumns: "240px minmax(0, 1fr)",
+          gap: "clamp(32px,5vw,72px)",
+          alignItems: "start",
+          boxSizing: "border-box",
+        }}
+      >
+        {/* Desktop Sticky Sidebar */}
+        {!isMobile && (
+          <aside style={{ position: "sticky", top: 80, alignSelf: "start" }}>
+            <div style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "#5A635F", marginBottom: 14 }}>
+              Table of Contents
+            </div>
+            <nav style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              {SECTIONS.map((s) => (
+                <a
+                  key={s.id}
+                  href={`#priv-section-${s.id}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    scrollTo(s.id);
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "7px 10px",
+                    borderRadius: 8,
+                    color: activeSec === s.id ? "#0B0F0E" : "#4B5552",
+                    background: activeSec === s.id ? "rgba(201,242,77,.28)" : "transparent",
+                    fontSize: 13,
+                    fontWeight: activeSec === s.id ? 700 : 500,
+                    textDecoration: "none",
+                    transition: "all .12s",
+                  }}
+                >
+                  <span style={{ fontSize: 11, fontWeight: 700, color: activeSec === s.id ? "#0B0F0E" : "#9AA39E", width: 18, flexShrink: 0 }}>
+                    {s.id.padStart(2, "0")}
+                  </span>
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.title}</span>
+                </a>
+              ))}
+            </nav>
+
+            <button
+              onClick={() => onNav("terms")}
+              style={{
+                marginTop: 28,
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 8,
+                background: "#FFFDF8",
+                border: "1px solid rgba(11,15,14,.18)",
+                borderRadius: 999,
+                padding: "10px 16px",
+                cursor: "pointer",
+                fontSize: 13,
+                fontWeight: 600,
+                color: "#0B0F0E",
+                fontFamily: "inherit",
+                transition: "background .15s, border-color .15s",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "#C9F24D"; e.currentTarget.style.borderColor = "#0B0F0E"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "#FFFDF8"; e.currentTarget.style.borderColor = "rgba(11,15,14,.18)"; }}
+            >
+              <span>Terms of Service</span>
+              <span>→</span>
+            </button>
+          </aside>
+        )}
+
+        {/* Section List */}
+        <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 32 : 44, minWidth: 0 }}>
+          {SECTIONS.map((s) => (
+            <article
+              key={s.id}
+              id={`priv-section-${s.id}`}
+              style={{
+                scrollMarginTop: 120,
+                background: "#FFFDF8",
+                border: "1px solid rgba(11,15,14,.1)",
+                borderRadius: 16,
+                padding: isMobile ? "18px 16px" : "28px 32px",
+                boxShadow: "0 2px 8px -2px rgba(11,15,14,.04)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 28,
+                    height: 28,
+                    borderRadius: 8,
+                    background: "#0B0F0E",
+                    color: "#C9F24D",
+                    fontFamily: "'Instrument Sans',sans-serif",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    flexShrink: 0,
+                  }}
+                >
+                  {s.id}
                 </span>
-                <h2 style={{ fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: "clamp(18px,2vw,24px)", letterSpacing: "-.02em", margin: 0 }}>
+                <h2 style={{ fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 700, fontSize: "clamp(18px,2.5vw,22px)", letterSpacing: "-.02em", margin: 0, color: "#0B0F0E" }}>
                   {s.title}
                 </h2>
               </div>
+
               {s.body.split("\n\n").map((para, i) => (
-                <p key={i} style={{ margin: "0 0 14px", fontSize: 15, lineHeight: 1.75, color: "#3E4744", whiteSpace: "pre-line" }}>{para}</p>
+                <p
+                  key={i}
+                  style={{
+                    margin: "0 0 12px",
+                    fontSize: 15,
+                    lineHeight: 1.7,
+                    color: "#3E4744",
+                    wordBreak: "break-word",
+                    overflowWrap: "break-word",
+                    whiteSpace: "pre-line",
+                  }}
+                >
+                  {para}
+                </p>
               ))}
-            </div>
+            </article>
           ))}
+
+          {/* Switch page card for mobile */}
+          {isMobile && (
+            <div style={{ marginTop: 8, padding: 16, borderRadius: 14, background: "#FFFDF8", border: "1px solid rgba(11,15,14,.12)", textAlign: "center" }}>
+              <div style={{ fontSize: 13, color: "#5A635F", marginBottom: 10 }}>Looking for our platform usage rules?</div>
+              <button
+                onClick={() => onNav("terms")}
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  borderRadius: 999,
+                  background: "#C9F24D",
+                  border: "1px solid #0B0F0E",
+                  color: "#0B0F0E",
+                  fontWeight: 700,
+                  fontSize: 13,
+                  cursor: "pointer",
+                }}
+              >
+                Read Terms of Service →
+              </button>
+            </div>
+          )}
         </div>
       </section>
 

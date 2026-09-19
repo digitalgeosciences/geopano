@@ -147,3 +147,16 @@ export function createNewPathWithStop(pathName: string, city: string, stop?: Sto
   saveCustomPath(path);
   return path;
 }
+
+export function createNewPathWithStops(pathName: string, city: string, stops: Stop[]): Path {
+  const pathId = `pt_${Date.now()}`;
+  const path: Path = {
+    id: pathId,
+    name: pathName.trim(),
+    city: city.trim() || "Saudi Arabia",
+    bg: "linear-gradient(165deg,#0B0F0E,#3E4744)",
+    stops,
+  };
+  saveCustomPath(path);
+  return path;
+}

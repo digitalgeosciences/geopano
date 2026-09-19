@@ -1,0 +1,3 @@
+path_id,path_title,description,creator_id,creation_date,updated_date,region,country,cover_image,status
+path-001,Jebel Field Trip,Mock virtual geology field trip through selected outcrops.,user-001,2026-09-01T08:00:00Z,2026-09-10T12:00:00Z,Eastern Province,Saudi Arabia,/media/paths/jebel-cover.jpg,published
+path-002,Coastal Geology Walk,Mock coastal field trip demonstrating common geological observations.,user-002,2026-09-05T09:30:00Z,,Eastern Province,Saudi Arabia,/media/paths/coast-cover.jpg,draft

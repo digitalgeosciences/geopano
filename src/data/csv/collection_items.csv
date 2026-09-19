@@ -1,0 +1,6 @@
+collection_item_id,collection_id,item_type,item_id,note,sort_order,added_date
+CI001,COL001,annotation,ANN001,Good example for teaching,1,2026-09-18
+CI002,COL001,stop,STP002,Revisit this outcrop,2,2026-09-18
+CI003,COL001,annotation,ANN004,Useful comparison,3,2026-09-19
+CI004,COL002,path,PATH001,Excellent field trip,1,2026-09-15
+CI005,COL002,stop,STP003,Great exposure,2,2026-09-17

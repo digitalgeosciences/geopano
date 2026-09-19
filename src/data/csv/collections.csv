@@ -1,0 +1,3 @@
+collection_id,collection_title,description,creator_id,creation_date,updated_date,visibility
+COL001,Carbonate Features,Interesting carbonate geology observed during field trips,USR002,2026-09-18,2026-09-19,private
+COL002,Field Trip Favorites,My favorite stops and observations,USR003,2026-09-15,2026-09-18,public

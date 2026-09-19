@@ -1,0 +1,5 @@
+stop_id,stop_title,path_id,creator_id,creation_date,updated_date,image_360,thumbnail,file_size,image_width,image_height,lat,lng,altitude,default_yaw,default_pitch,default_fov,north_yaw,horizon_pitch,roll,projection_type,sort_order,status
+stop-001,Entrance Outcrop,path-001,user-001,2026-09-01T08:10:00Z,,/media/360/stop-001.jpg,/media/thumbs/stop-001.jpg,18450000,8192,4096,26.3001000,50.1201000,42.5,115.0,-2.0,90.0,28.0,0.0,0.0,equirectangular,1,published
+stop-002,Layered Ridge,path-001,user-001,2026-09-01T08:35:00Z,,/media/360/stop-002.jpg,/media/thumbs/stop-002.jpg,19200000,8192,4096,26.3010000,50.1214000,51.2,210.0,1.5,85.0,35.0,0.0,0.5,equirectangular,2,published
+stop-003,Wadi Exposure,path-001,user-001,2026-09-01T09:05:00Z,,/media/360/stop-003.jpg,/media/thumbs/stop-003.jpg,17600000,8192,4096,26.3022000,50.1220000,47.8,75.0,-4.0,90.0,12.0,0.0,-0.3,equirectangular,3,published
+stop-004,Coastal Cliff,path-002,user-002,2026-09-05T09:45:00Z,,/media/360/stop-004.jpg,/media/thumbs/stop-004.jpg,20100000,8192,4096,26.2505000,50.2108000,8.4,160.0,0.0,95.0,44.0,0.0,0.0,equirectangular,1,draft

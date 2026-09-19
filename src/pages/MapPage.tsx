@@ -7,6 +7,7 @@ import {
   registerPanoramaUrl,
   createStandaloneStop,
   createNewPathWithStop,
+  createNewPathWithStops,
   addStopToPath,
 } from "../data/pathsData";
 
@@ -56,13 +57,27 @@ const CloseX = () => (
 );
 
 // ── Add Stop / Path modal ─────────────────────────────────────────────────────
+interface DraftPathStop {
+  id: string;
+  title: string;
+  lat: string;
+  lng: string;
+  blurb: string;
+  panoFile: File | null;
+  panoPreview: string;
+  panoUrl: string;
+}
+
 interface AddModalProps {
   paths: Path[];
   pathIdx: number;
   initialLat?: string;
   initialLng?: string;
+  initialTab?: "stop" | "path";
+  initialDestMode?: "standalone" | "existing_path";
+  pickTarget?: { tab: "stop" | "path"; stopIdx?: number };
   onClose: () => void;
-  onPickOnMap: () => void;
+  onPickOnMap: (target?: { tab: "stop" | "path"; stopIdx?: number }) => void;
   onCreated: (path: Path, stopId?: string) => void;
   onNavTo360: (pathId: string, stopId: string) => void;
 }
@@ -72,17 +87,20 @@ function AddModal({
   pathIdx,
   initialLat,
   initialLng,
+  initialTab,
+  initialDestMode,
+  pickTarget,
   onClose,
   onPickOnMap,
   onCreated,
   onNavTo360,
 }: AddModalProps) {
-  const [tab, setTab] = useState<"stop" | "path">("stop");
+  const [tab, setTab] = useState<"stop" | "path">(initialTab || "stop");
 
   // Stop fields
   const [stopName, setStopName] = useState("");
-  const [lat, setLat] = useState(initialLat || "");
-  const [lng, setLng] = useState(initialLng || "");
+  const [lat, setLat] = useState(initialLat && (!pickTarget || pickTarget.tab === "stop") ? initialLat : "");
+  const [lng, setLng] = useState(initialLng && (!pickTarget || pickTarget.tab === "stop") ? initialLng : "");
   const [blurb, setBlurb] = useState("");
 
   // 360 Panorama fields
@@ -91,23 +109,38 @@ function AddModal({
   const [panoPreview, setPanoPreview] = useState<string>("");
   const [panoUrl, setPanoUrl] = useState<string>("");
 
-  // Destination mode (independent / not forced to existing data)
-  const [destMode, setDestMode] = useState<"standalone" | "new_path" | "existing_path">("standalone");
-  const [newPathName, setNewPathName] = useState("");
+  // Destination mode: default is strictly "standalone"
+  const [destMode, setDestMode] = useState<"standalone" | "existing_path">(initialDestMode || "standalone");
   const [newPathCity, setNewPathCity] = useState("");
   const [selPathId, setSelPathId] = useState(paths[pathIdx]?.id || paths[0]?.id || "");
 
-  // Path tab fields
+  // Path tab fields (at least 2 stops required)
   const [pathName, setPathName] = useState("");
   const [pathCity, setPathCity] = useState("");
+  const [pathStops, setPathStops] = useState<DraftPathStop[]>([
+    { id: "s1", title: "", lat: "", lng: "", blurb: "", panoFile: null, panoPreview: "", panoUrl: "" },
+    { id: "s2", title: "", lat: "", lng: "", blurb: "", panoFile: null, panoPreview: "", panoUrl: "" },
+  ]);
 
   // Success result
   const [doneInfo, setDoneInfo] = useState<{ path: Path; stop?: Stop } | null>(null);
 
   useEffect(() => {
-    if (initialLat) setLat(initialLat);
-    if (initialLng) setLng(initialLng);
-  }, [initialLat, initialLng]);
+    if (initialLat && initialLng) {
+      if (pickTarget?.tab === "path" && pickTarget.stopIdx !== undefined) {
+        setPathStops((prev) => {
+          const next = [...prev];
+          if (next[pickTarget.stopIdx!]) {
+            next[pickTarget.stopIdx!] = { ...next[pickTarget.stopIdx!], lat: initialLat, lng: initialLng };
+          }
+          return next;
+        });
+      } else {
+        setLat(initialLat);
+        setLng(initialLng);
+      }
+    }
+  }, [initialLat, initialLng, pickTarget]);
 
   const inp: React.CSSProperties = {
     width: "100%", padding: "10px 14px", borderRadius: 10,
@@ -160,8 +193,6 @@ function AddModal({
     let targetPath: Path;
     if (destMode === "standalone") {
       targetPath = createStandaloneStop(newStop, newPathCity.trim() || "Outcrop Station");
-    } else if (destMode === "new_path") {
-      targetPath = createNewPathWithStop(newPathName.trim() || stopName.trim(), newPathCity.trim() || "Saudi Arabia", newStop);
     } else {
       targetPath = addStopToPath(selPathId, newStop);
     }
@@ -172,10 +203,54 @@ function AddModal({
 
   const handlePathSubmit = () => {
     if (!pathName.trim() || !pathCity.trim()) return;
-    const targetPath = createNewPathWithStop(pathName.trim(), pathCity.trim());
-    setDoneInfo({ path: targetPath });
-    onCreated(targetPath);
+    const validStops = pathStops.filter((s) => {
+      const nLat = parseFloat(s.lat);
+      const nLng = parseFloat(s.lng);
+      return s.title.trim() && !isNaN(nLat) && !isNaN(nLng);
+    });
+    if (validStops.length < 2) return;
+
+    const realStops: Stop[] = validStops.map((ds, idx) => {
+      const nLat = parseFloat(ds.lat);
+      const nLng = parseFloat(ds.lng);
+      const sId = `sp_${Date.now()}_${idx}`;
+      let finalPano = "/uploads/sp00009.jpg";
+      if (ds.panoPreview) {
+        registerPanoramaUrl(sId, ds.panoPreview);
+        finalPano = ds.panoPreview;
+      } else if (ds.panoUrl.trim()) {
+        finalPano = ds.panoUrl.trim();
+      }
+      return {
+        id: sId,
+        title: ds.title.trim(),
+        ll: [nLat, nLng],
+        lat: `${Math.abs(nLat).toFixed(4)}° ${nLat >= 0 ? "N" : "S"}`,
+        lon: `${Math.abs(nLng).toFixed(4)}° ${nLng >= 0 ? "E" : "W"}`,
+        blurb: ds.blurb.trim() || `Field station ${idx + 1} along ${pathName.trim()}.`,
+        panorama: finalPano,
+        annotations: [],
+      };
+    });
+
+    const targetPath = createNewPathWithStops(pathName.trim(), pathCity.trim(), realStops);
+    setDoneInfo({ path: targetPath, stop: realStops[0] });
+    onCreated(targetPath, realStops[0]?.id);
   };
+
+  const updatePathStop = (idx: number, patch: Partial<DraftPathStop>) => {
+    setPathStops((prev) => {
+      const next = [...prev];
+      if (next[idx]) next[idx] = { ...next[idx], ...patch };
+      return next;
+    });
+  };
+
+  const validStopsCount = pathStops.filter((s) => {
+    const nLat = parseFloat(s.lat);
+    const nLng = parseFloat(s.lng);
+    return s.title.trim() && !isNaN(nLat) && !isNaN(nLng);
+  }).length;
 
   return (
     <div
@@ -234,7 +309,77 @@ function AddModal({
               </div>
             </div>
           ) : tab === "stop" ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {/* Existing Path assignment at the top */}
+              <div style={{ padding: "12px 14px", borderRadius: 12, background: "rgba(11,15,14,.03)", border: "1px solid rgba(11,15,14,.1)" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: destMode === "existing_path" ? 10 : 0 }}>
+                  <span style={lbl}>PATH ASSIGNMENT</span>
+                  <div style={{ display: "flex", gap: 4 }}>
+                    <button
+                      type="button"
+                      onClick={() => setDestMode("existing_path")}
+                      style={{
+                        padding: "4px 12px",
+                        borderRadius: 999,
+                        fontSize: 11,
+                        fontFamily: "'Instrument Sans',sans-serif",
+                        fontWeight: 700,
+                        border: destMode === "existing_path" ? "1.5px solid #0B0F0E" : "1px solid rgba(11,15,14,.18)",
+                        background: destMode === "existing_path" ? "#0B0F0E" : "#FFFDF8",
+                        color: destMode === "existing_path" ? "#C9F24D" : "#5A635F",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Existing Path
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDestMode("standalone")}
+                      style={{
+                        padding: "4px 12px",
+                        borderRadius: 999,
+                        fontSize: 11,
+                        fontFamily: "'Instrument Sans',sans-serif",
+                        fontWeight: 700,
+                        border: destMode === "standalone" ? "1.5px solid #0B0F0E" : "1px solid rgba(11,15,14,.18)",
+                        background: destMode === "standalone" ? "#0B0F0E" : "#FFFDF8",
+                        color: destMode === "standalone" ? "#C9F24D" : "#5A635F",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Standalone
+                    </button>
+                  </div>
+                </div>
+
+                {destMode === "existing_path" ? (
+                  <div>
+                    <span style={{ ...lbl, marginBottom: 4 }}>CHOOSE EXISTING PATH *</span>
+                    <select
+                      value={selPathId}
+                      onChange={(e) => setSelPathId(e.target.value)}
+                      style={{ ...inp, appearance: "none" as React.CSSProperties["appearance"] }}
+                    >
+                      {paths.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} ({p.stops.length} stops) · {p.city}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div>
+                    <span style={{ ...lbl, marginBottom: 4 }}>LOCATION / OUTCROP AREA</span>
+                    <input
+                      value={newPathCity}
+                      onChange={(e) => setNewPathCity(e.target.value)}
+                      placeholder="e.g. Tuwaiq Escarpment, Saudi Arabia"
+                      style={inp}
+                    />
+                  </div>
+                )}
+              </div>
+
               {/* Stop title */}
               <div>
                 <span style={lbl}>STOP / STATION NAME *</span>
@@ -305,7 +450,7 @@ function AddModal({
                   <span style={lbl}>COORDINATES *</span>
                   <button
                     type="button"
-                    onClick={onPickOnMap}
+                    onClick={() => onPickOnMap({ tab: "stop" })}
                     style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid rgba(11,15,14,.2)", background: "#FFFDF8", cursor: "pointer", fontFamily: "'Instrument Sans',sans-serif", fontWeight: 600, fontSize: 11, color: "#0B0F0E", display: "flex", alignItems: "center", gap: 5 }}
                   >
                     <span>📍</span>
@@ -334,94 +479,17 @@ function AddModal({
                 />
               </div>
 
-              {/* Destination Mode: Standalone, New Path, or Existing */}
-              <div style={{ borderTop: "1px solid rgba(11,15,14,.1)", paddingTop: 14 }}>
-                <span style={lbl}>SUBMISSION MODE (NOT FORCED TO EXISTING DATA)</span>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
-                  {[
-                    { id: "standalone", title: "Standalone Stop", desc: "No path" },
-                    { id: "new_path", title: "New Path", desc: "Create path" },
-                    { id: "existing_path", title: "Existing Path", desc: "Link to path" },
-                  ].map((m) => {
-                    const active = destMode === m.id;
-                    return (
-                      <button
-                        key={m.id}
-                        type="button"
-                        onClick={() => setDestMode(m.id as typeof destMode)}
-                        style={{ padding: "10px 8px", borderRadius: 10, border: active ? "1.5px solid #0B0F0E" : "1px solid rgba(11,15,14,.15)", background: active ? "rgba(201,242,77,.25)" : "#FFFDF8", cursor: "pointer", textAlign: "center", transition: "all .12s" }}
-                      >
-                        <div style={{ fontSize: 12, fontWeight: 600, color: "#0B0F0E" }}>{m.title}</div>
-                        <div style={{ fontSize: 9, fontFamily: "'Instrument Sans',sans-serif", color: "#5A635F", marginTop: 2 }}>{m.desc}</div>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {destMode === "standalone" && (
-                  <div>
-                    <span style={lbl}>LOCATION / OUTCROP AREA</span>
-                    <input
-                      value={newPathCity}
-                      onChange={(e) => setNewPathCity(e.target.value)}
-                      placeholder="e.g. Tuwaiq Escarpment, Saudi Arabia"
-                      style={inp}
-                    />
-                  </div>
-                )}
-
-                {destMode === "new_path" && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    <div>
-                      <span style={lbl}>NEW PATH NAME *</span>
-                      <input
-                        value={newPathName}
-                        onChange={(e) => setNewPathName(e.target.value)}
-                        placeholder="e.g. AlUla Sandstone Traverse"
-                        style={inp}
-                      />
-                    </div>
-                    <div>
-                      <span style={lbl}>REGION / CITY</span>
-                      <input
-                        value={newPathCity}
-                        onChange={(e) => setNewPathCity(e.target.value)}
-                        placeholder="e.g. AlUla, Saudi Arabia"
-                        style={inp}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {destMode === "existing_path" && (
-                  <div>
-                    <span style={lbl}>CHOOSE EXISTING PATH</span>
-                    <select
-                      value={selPathId}
-                      onChange={(e) => setSelPathId(e.target.value)}
-                      style={{ ...inp, appearance: "none" as React.CSSProperties["appearance"] }}
-                    >
-                      {paths.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name} ({p.stops.length} stops)
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
-
               {/* Submit button */}
               <div style={{ paddingTop: 4 }}>
                 <button
                   type="button"
                   onClick={handleStopSubmit}
-                  disabled={!stopName.trim() || !lat.trim() || !lng.trim() || (destMode === "new_path" && !newPathName.trim())}
+                  disabled={!stopName.trim() || !lat.trim() || !lng.trim()}
                   style={{
                     width: "100%", padding: "13px 0", borderRadius: 12, border: "1px solid #0B0F0E",
-                    background: (!stopName.trim() || !lat.trim() || !lng.trim() || (destMode === "new_path" && !newPathName.trim())) ? "rgba(11,15,14,.1)" : "#C9F24D",
-                    color: (!stopName.trim() || !lat.trim() || !lng.trim() || (destMode === "new_path" && !newPathName.trim())) ? "#9AA39E" : "#0B0F0E",
-                    fontWeight: 700, fontSize: 14, cursor: (!stopName.trim() || !lat.trim() || !lng.trim() || (destMode === "new_path" && !newPathName.trim())) ? "not-allowed" : "pointer",
+                    background: (!stopName.trim() || !lat.trim() || !lng.trim()) ? "rgba(11,15,14,.1)" : "#C9F24D",
+                    color: (!stopName.trim() || !lat.trim() || !lng.trim()) ? "#9AA39E" : "#0B0F0E",
+                    fontWeight: 700, fontSize: 14, cursor: (!stopName.trim() || !lat.trim() || !lng.trim()) ? "not-allowed" : "pointer",
                     fontFamily: "inherit", transition: "background .15s",
                   }}
                 >
@@ -431,27 +499,228 @@ function AddModal({
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <div>
-                <span style={lbl}>PATH NAME *</span>
-                <input value={pathName} onChange={(e) => setPathName(e.target.value)} placeholder="e.g. Harrat Kishb Traverse" style={inp} />
+              {/* Path metadata */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <span style={lbl}>PATH NAME *</span>
+                  <input
+                    value={pathName}
+                    onChange={(e) => setPathName(e.target.value)}
+                    placeholder="e.g. Tuwaiq Escarpment Traverse"
+                    style={inp}
+                  />
+                </div>
+                <div>
+                  <span style={lbl}>REGION / CITY *</span>
+                  <input
+                    value={pathCity}
+                    onChange={(e) => setPathCity(e.target.value)}
+                    placeholder="e.g. Riyadh, Saudi Arabia"
+                    style={inp}
+                  />
+                </div>
               </div>
-              <div>
-                <span style={lbl}>REGION / CITY *</span>
-                <input value={pathCity} onChange={(e) => setPathCity(e.target.value)} placeholder="e.g. Hafir Kishb, Saudi Arabia" style={inp} />
+
+              {/* Traverse Stops Header */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 8, borderTop: "1px solid rgba(11,15,14,.08)" }}>
+                <div>
+                  <span style={{ ...lbl, marginBottom: 2 }}>TRAVERSE STOPS (AT LEAST 2 REQUIRED) *</span>
+                  <div style={{ fontSize: 11, color: "#5A635F" }}>
+                    A path connects multiple field stops. Add at least two stops along this traverse.
+                  </div>
+                </div>
+                <span
+                  style={{
+                    padding: "3px 8px",
+                    borderRadius: 999,
+                    fontSize: 10,
+                    fontWeight: 700,
+                    background: validStopsCount >= 2 ? "rgba(201,242,77,.28)" : "rgba(11,15,14,.06)",
+                    color: validStopsCount >= 2 ? "#14504A" : "#6B7280",
+                    border: "1px solid",
+                    borderColor: validStopsCount >= 2 ? "#0B0F0E" : "transparent",
+                  }}
+                >
+                  {validStopsCount} / {pathStops.length} READY
+                </span>
               </div>
+
+              {/* Stop Cards */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {pathStops.map((ps, idx) => {
+                  const isReady = ps.title.trim() && !isNaN(parseFloat(ps.lat)) && !isNaN(parseFloat(ps.lng));
+                  return (
+                    <div
+                      key={ps.id}
+                      style={{
+                        padding: "14px 16px",
+                        borderRadius: 14,
+                        border: isReady ? "1px solid rgba(11,15,14,.2)" : "1px dashed rgba(11,15,14,.25)",
+                        background: isReady ? "rgba(201,242,77,.06)" : "#FDFCFA",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span
+                            style={{
+                              width: 22,
+                              height: 22,
+                              borderRadius: 999,
+                              background: isReady ? "#C9F24D" : "#0B0F0E",
+                              color: isReady ? "#0B0F0E" : "#FFFDF8",
+                              border: "1px solid #0B0F0E",
+                              fontSize: 11,
+                              fontWeight: 700,
+                              display: "grid",
+                              placeItems: "center",
+                            }}
+                          >
+                            {idx + 1}
+                          </span>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: "#0B0F0E" }}>
+                            Stop {idx + 1} {idx < 2 ? "(Required)" : "(Optional)"}
+                          </span>
+                        </div>
+                        {pathStops.length > 2 && (
+                          <button
+                            type="button"
+                            onClick={() => setPathStops((prev) => prev.filter((_, i) => i !== idx))}
+                            style={{ ...closeBtn, width: 22, height: 22 }}
+                            title="Remove this stop"
+                          >
+                            <CloseX />
+                          </button>
+                        )}
+                      </div>
+
+                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                        <div>
+                          <span style={{ ...lbl, marginBottom: 4 }}>STOP NAME *</span>
+                          <input
+                            value={ps.title}
+                            onChange={(e) => updatePathStop(idx, { title: e.target.value })}
+                            placeholder={`e.g. Outcrop Station ${idx + 1}`}
+                            style={inp}
+                          />
+                        </div>
+
+                        <div>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                            <span style={lbl}>COORDINATES *</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onPickOnMap({ tab: "path", stopIdx: idx });
+                              }}
+                              style={{ padding: "3px 8px", borderRadius: 6, border: "1px solid rgba(11,15,14,.18)", background: "#FFFDF8", cursor: "pointer", fontSize: 11, fontWeight: 600, color: "#0B0F0E" }}
+                            >
+                              📍 Pick on map
+                            </button>
+                          </div>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                            <input
+                              value={ps.lat}
+                              onChange={(e) => updatePathStop(idx, { lat: e.target.value })}
+                              placeholder="Lat (e.g. 24.528)"
+                              style={inp}
+                            />
+                            <input
+                              value={ps.lng}
+                              onChange={(e) => updatePathStop(idx, { lng: e.target.value })}
+                              placeholder="Lng (e.g. 46.395)"
+                              style={inp}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Panorama file */}
+                        <div>
+                          <span style={{ ...lbl, marginBottom: 4 }}>360° PANORAMA PHOTO (OPTIONAL)</span>
+                          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                            <label style={{ flex: 1, padding: "8px 12px", border: "1px solid rgba(11,15,14,.18)", borderRadius: 8, background: "#FFFDF8", cursor: "pointer", fontSize: 12, color: ps.panoFile ? "#0B0F0E" : "#5A635F", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                              <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                style={{ display: "none" }}
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    const preview = URL.createObjectURL(file);
+                                    updatePathStop(idx, { panoFile: file, panoPreview: preview });
+                                  }
+                                }}
+                              />
+                              {ps.panoFile ? `✓ ${ps.panoFile.name}` : "Choose 360° photo (.jpg / .png)"}
+                            </label>
+                            {ps.panoPreview && (
+                              <img src={ps.panoPreview} alt="" style={{ width: 36, height: 28, borderRadius: 4, objectFit: "cover", border: "1px solid #0B0F0E" }} />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Add another stop button */}
+              <button
+                type="button"
+                onClick={() =>
+                  setPathStops((prev) => [
+                    ...prev,
+                    { id: `${Date.now()}_${prev.length}`, title: "", lat: "", lng: "", blurb: "", panoFile: null, panoPreview: "", panoUrl: "" },
+                  ])
+                }
+                style={{
+                  padding: "9px 14px",
+                  borderRadius: 10,
+                  border: "1px dashed rgba(11,15,14,.3)",
+                  background: "#FFFDF8",
+                  cursor: "pointer",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: "#14504A",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                }}
+              >
+                + Add Another Stop to Path
+              </button>
+
+              {/* Submit Path button */}
               <button
                 type="button"
                 onClick={handlePathSubmit}
-                disabled={!pathName.trim() || !pathCity.trim()}
+                disabled={!pathName.trim() || !pathCity.trim() || validStopsCount < 2}
                 style={{
-                  padding: "14px 0", borderRadius: 12, border: "1px solid #0B0F0E",
-                  background: (!pathName.trim() || !pathCity.trim()) ? "rgba(11,15,14,.1)" : "#C9F24D",
-                  color: (!pathName.trim() || !pathCity.trim()) ? "#9AA39E" : "#0B0F0E",
-                  fontWeight: 700, fontSize: 15, cursor: (!pathName.trim() || !pathCity.trim()) ? "not-allowed" : "pointer",
-                  fontFamily: "inherit", transition: "background .15s", marginTop: 8,
+                  padding: "13px 0",
+                  borderRadius: 12,
+                  border: "1px solid #0B0F0E",
+                  background:
+                    !pathName.trim() || !pathCity.trim() || validStopsCount < 2
+                      ? "rgba(11,15,14,.1)"
+                      : "#C9F24D",
+                  color:
+                    !pathName.trim() || !pathCity.trim() || validStopsCount < 2
+                      ? "#9AA39E"
+                      : "#0B0F0E",
+                  fontWeight: 700,
+                  fontSize: 14,
+                  cursor:
+                    !pathName.trim() || !pathCity.trim() || validStopsCount < 2
+                      ? "not-allowed"
+                      : "pointer",
+                  fontFamily: "inherit",
+                  transition: "background .15s",
+                  marginTop: 4,
                 }}
               >
-                Create Empty Path
+                {validStopsCount < 2
+                  ? "At Least 2 Stops Required to Create Path"
+                  : `Create Path with ${validStopsCount} Stops`}
               </button>
             </div>
           )}
@@ -488,6 +757,9 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
   const [stopIdx, setStopIdx] = useState(initS >= 0 ? initS : 0);
   const [panel, setPanel] = useState<"paths" | "stop" | "annotations" | "none">("none");
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [addModalTab, setAddModalTab] = useState<"stop" | "path">("stop");
+  const [addModalDestMode, setAddModalDestMode] = useState<"standalone" | "existing_path">("standalone");
+  const [pickTarget, setPickTarget] = useState<{ tab: "stop" | "path"; stopIdx?: number }>({ tab: "stop" });
   const [pickingMode, setPickingMode] = useState(false);
   const [pickedCoords, setPickedCoords] = useState<{ lat: string; lng: string } | null>(null);
   const [geoJsonData, setGeoJsonData] = useState<any[]>([]);
@@ -738,8 +1010,8 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
   const visibleStops = stopsExpanded ? pathStops : pathStops.slice(0, 5);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 57px)", background: "#F4F2ED" }}>
-      <main style={{ position: "relative", height: "calc(100vh - 135px)", minHeight: isMobile ? 480 : 540, overflow: "hidden" }}>
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, height: "100%", background: "#F4F2ED", overflow: "hidden" }}>
+      <main style={{ position: "relative", flex: 1, minHeight: 0, overflow: "hidden" }}>
         <div ref={mapDivRef} style={{ position: "absolute", inset: 0, background: "#E4E0D6" }} />
 
       {/* ── Add Stop/Path modal ─────────────────────────────────────────── */}
@@ -749,8 +1021,12 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
           pathIdx={pathIdx}
           initialLat={pickedCoords?.lat}
           initialLng={pickedCoords?.lng}
+          initialTab={addModalTab}
+          initialDestMode={addModalDestMode}
+          pickTarget={pickTarget}
           onClose={() => setAddModalOpen(false)}
-          onPickOnMap={() => {
+          onPickOnMap={(target) => {
+            if (target) setPickTarget(target);
             setAddModalOpen(false);
             setPickingMode(true);
           }}
@@ -790,12 +1066,6 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
 
       {/* ── Left rail ──────────────────────────────────────────────────── */}
       <div style={{ position: "absolute", left: "clamp(12px,2vw,24px)", top: "clamp(12px,2vw,24px)", zIndex: 500, display: "flex", flexDirection: "column", gap: 8, pointerEvents: "none" }}>
-
-        {/* Top search bar */}
-        <label style={{ pointerEvents: "auto", display: "flex", alignItems: "center", gap: 10, padding: "11px 16px", borderRadius: 999, background: "rgba(255,253,248,.95)", border: "1px solid rgba(11,15,14,.16)", backdropFilter: "blur(10px)", boxShadow: "0 8px 20px -14px rgba(11,15,14,.55)", width: isMobile ? 180 : 220 }}>
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="#5A635F" strokeWidth="1.6" /><path d="M11 11l3.4 3.4" stroke="#5A635F" strokeWidth="1.6" strokeLinecap="round" /></svg>
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search paths or stops" style={{ border: "none", outline: "none", background: "transparent", fontFamily: "'Instrument Sans',sans-serif", fontSize: 13, color: "#0B0F0E", width: "100%" }} />
-        </label>
 
         {/* Icon rail */}
         <div style={{ pointerEvents: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
@@ -843,6 +1113,38 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
                         </button>
                       )}
                     </div>
+
+                    {/* Create new path button */}
+                    <div style={{ flexShrink: 0, padding: "8px 14px 10px", borderTop: "1px solid rgba(11,15,14,.07)" }}>
+                      <button
+                        onClick={() => {
+                          setAddModalTab("path");
+                          setAddModalOpen(true);
+                        }}
+                        style={{
+                          width: "100%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 6,
+                          padding: "8px 12px",
+                          borderRadius: 999,
+                          border: "1px solid rgba(11,15,14,.18)",
+                          background: "#FFFDF8",
+                          cursor: "pointer",
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: "#0B0F0E",
+                          fontFamily: "inherit",
+                          transition: "all .15s",
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = "#C9F24D"; e.currentTarget.style.borderColor = "#0B0F0E"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = "#FFFDF8"; e.currentTarget.style.borderColor = "rgba(11,15,14,.18)"; }}
+                      >
+                        <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+                        Create new path
+                      </button>
+                    </div>
                   </>
                 ) : (
                   <>
@@ -884,6 +1186,47 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
                       <button onClick={() => setPanel("none")} style={closeBtn}><CloseX /></button>
                     </div>
 
+                    {/* Add stop button at the top for existing path */}
+                    <div style={{ flexShrink: 0, padding: "8px 14px 6px", borderBottom: "1px solid rgba(11,15,14,.06)" }}>
+                      <button
+                        onClick={() => {
+                          setAddModalTab("stop");
+                          setAddModalDestMode("existing_path");
+                          setAddModalOpen(true);
+                        }}
+                        style={{
+                          width: "100%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 6,
+                          padding: "7px 12px",
+                          borderRadius: 8,
+                          border: "1px dashed rgba(11,15,14,.24)",
+                          background: "rgba(201,242,77,.18)",
+                          cursor: "pointer",
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: "#14504A",
+                          fontFamily: "inherit",
+                          transition: "background .15s, border-color .15s",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "#C9F24D";
+                          e.currentTarget.style.borderColor = "#0B0F0E";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "rgba(201,242,77,.18)";
+                          e.currentTarget.style.borderColor = "rgba(11,15,14,.24)";
+                        }}
+                      >
+                        <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                          <path d="M8 3v10M3 8h10" stroke="#0B0F0E" strokeWidth="2" strokeLinecap="round" />
+                        </svg>
+                        Add stop to this path
+                      </button>
+                    </div>
+
                     {/* Stops list */}
                     <div className="gp-popover-scroll" style={{ flex: isMobile ? 1 : undefined, maxHeight: isMobile ? "none" : 220, paddingRight: 4 }}>
                       {visibleStops.map((s, si) => {
@@ -914,29 +1257,13 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
                     </div>
 
                     {/* CTA row */}
-                    <div style={{ flexShrink: 0, padding: isMobile ? "7px 14px 9px" : "10px 14px 14px", display: "flex", gap: 7, borderTop: "1px solid rgba(11,15,14,.08)" }}>
+                    <div style={{ flexShrink: 0, padding: isMobile ? "7px 14px 9px" : "10px 14px 14px", display: "flex", borderTop: "1px solid rgba(11,15,14,.08)" }}>
                       <button onClick={() => {
                         onSelectStop(curPath.id, curStop.id);
                         window.location.hash = `#/stop/${curPath.id}/${curStop.id}`;
                       }}
-                        style={{ flex: 1, padding: "9px 0", borderRadius: 999, background: "#C9F24D", border: "1px solid #0B0F0E", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
+                        style={{ width: "100%", padding: "9px 0", borderRadius: 999, background: "#C9F24D", border: "1px solid #0B0F0E", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
                         View 360° ↗
-                      </button>
-                      <button onClick={() => {
-                        const nextIdx = Math.min(stopIdx + 1, curPath.stops.length - 1);
-                        stopIdxRef.current = nextIdx;
-                        setStopIdx(nextIdx);
-                        const nextStop = curPath.stops[nextIdx];
-                        if (nextStop) {
-                          onSelectStop(curPath.id, nextStop.id);
-                          window.history.replaceState(null, "", `#/map/${curPath.id}/${nextStop.id}`);
-                          if (mapRef.current) {
-                            mapRef.current.flyTo(nextStop.ll as [number, number], Math.max(mapRef.current.getZoom(), 14), { duration: 0.8 });
-                          }
-                        }
-                      }} disabled={stopIdx >= curPath.stops.length - 1}
-                        style={{ padding: "9px 12px", borderRadius: 999, background: "transparent", border: "1px solid rgba(11,15,14,.22)", fontSize: 12, cursor: "pointer", fontFamily: "inherit", opacity: stopIdx >= curPath.stops.length - 1 ? 0.35 : 1 }}>
-                        Next →
                       </button>
                     </div>
                   </>
@@ -987,7 +1314,16 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
           </div>
 
           {/* ── Add Stop/Path icon ── */}
-          <button onClick={() => setAddModalOpen(true)} aria-label="Add stop or path" title="Add stop or path" style={railBtn(addModalOpen)}>
+          <button
+            onClick={() => {
+              setAddModalTab("stop");
+              setAddModalDestMode("standalone");
+              setAddModalOpen(true);
+            }}
+            aria-label="Add stop or path"
+            title="Add stop or path"
+            style={railBtn(addModalOpen)}
+          >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
               <path d="M12 21s-7-6.5-7-11a7 7 0 0114 0c0 4.5-7 11-7 11z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
               <path d="M12 7v6M9 10h6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
@@ -1062,28 +1398,32 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
         </div>
       </div>
 
-      {/* ── Scale bar + coordinates (dark theme, attached to map) ────────── */}
+      {/* ── Scale bar + cursor coordinates ────────── */}
       {(() => {
         const scaleLat = mouseCoords?.lat ?? 25;
         const { barPx, label } = computeScale(zoom, scaleLat);
         const fmtDeg = (val: number, pos: string, neg: string) => `${Math.abs(val).toFixed(4)}° ${val >= 0 ? pos : neg}`;
         const coordText = mouseCoords ? `${fmtDeg(mouseCoords.lat, "N", "S")}, ${fmtDeg(mouseCoords.lng, "E", "W")}` : "";
         return (
-          <div style={{ position: "absolute", left: "clamp(12px,2vw,24px)", bottom: "clamp(12px,2vw,24px)", zIndex: isMobile ? 499 : 500, display: "flex", alignItems: "center", gap: 12, padding: "9px 16px", borderRadius: 999, background: "rgba(11,15,14,.72)", backdropFilter: "blur(8px)", pointerEvents: "auto" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ position: "relative", height: 10, width: barPx, flexShrink: 0 }}>
-                <div style={{ position: "absolute", left: 0, top: 0, width: 1.5, height: 10, background: "#FFFDF8", borderRadius: 1 }} />
-                <div style={{ position: "absolute", left: barPx / 2 - 0.75, top: 3, width: 1.5, height: 7, background: "#FFFDF8", borderRadius: 1 }} />
-                <div style={{ position: "absolute", right: 0, top: 0, width: 1.5, height: 10, background: "#FFFDF8", borderRadius: 1 }} />
-                <div style={{ position: "absolute", left: 0, top: 4, height: 3, width: barPx / 2, background: "#FFFDF8" }} />
-                <div style={{ position: "absolute", left: barPx / 2, top: 4, height: 3, width: barPx / 2, background: "rgba(255,253,248,.3)" }} />
+          <div style={{ position: "absolute", left: "clamp(12px,2vw,24px)", bottom: "clamp(12px,2vw,24px)", zIndex: isMobile ? 499 : 500, display: "flex", alignItems: "center", gap: 10, padding: "6px 14px", borderRadius: 999, background: "rgba(255,253,248,.92)", border: "1px solid rgba(11,15,14,.14)", backdropFilter: "blur(8px)", boxShadow: "0 4px 14px -4px rgba(11,15,14,.2)", pointerEvents: "auto" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+              <div style={{ position: "relative", height: 8, width: barPx, flexShrink: 0 }}>
+                <div style={{ position: "absolute", left: 0, top: 0, width: 1.5, height: 8, background: "#0B0F0E", borderRadius: 1 }} />
+                <div style={{ position: "absolute", left: barPx / 2 - 0.75, top: 2, width: 1.5, height: 6, background: "#0B0F0E", borderRadius: 1 }} />
+                <div style={{ position: "absolute", right: 0, top: 0, width: 1.5, height: 8, background: "#0B0F0E", borderRadius: 1 }} />
+                <div style={{ position: "absolute", left: 0, top: 3, height: 2.5, width: barPx / 2, background: "#0B0F0E" }} />
+                <div style={{ position: "absolute", left: barPx / 2, top: 3, height: 2.5, width: barPx / 2, background: "rgba(11,15,14,.18)" }} />
               </div>
-              <span style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 600, letterSpacing: ".04em", color: "rgba(255,253,248,.9)", whiteSpace: "nowrap" }}>{label}</span>
+              <span style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: ".04em", color: "#0B0F0E", whiteSpace: "nowrap" }}>{label}</span>
             </div>
-            <div style={{ width: 1, height: 14, background: "rgba(255,253,248,.2)", flexShrink: 0 }} />
-            <span style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 500, letterSpacing: ".02em", color: mouseCoords ? "#FFFDF8" : "rgba(255,253,248,.6)", whiteSpace: "nowrap" }}>
-              {mouseCoords ? coordText : "— move cursor —"}
-            </span>
+            {mouseCoords && (
+              <>
+                <div style={{ width: 1, height: 12, background: "rgba(11,15,14,.15)", flexShrink: 0 }} />
+                <span style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 600, letterSpacing: ".02em", color: "#3E4744", whiteSpace: "nowrap" }}>
+                  {coordText}
+                </span>
+              </>
+            )}
           </div>
         );
       })()}

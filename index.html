@@ -2,7 +2,9 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover is required for env(safe-area-inset-*) to resolve to
+         anything but 0 on notched devices; index.css relies on it. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>GeoPano — Geological Panorama Viewer</title>
     <meta name="description" content="Interactive geological panoramic tours and outcrop explorer" />
     <meta property="og:title" content="GeoPano — Geological Panorama Viewer" />

@@ -145,7 +145,7 @@ const TYPE_BADGES: Record<string, { bg: string; color: string; label: string }> 
 };
 
 export default function Library({ onNav, onSelectStop }: Props) {
-  const isMobile = useIsMobile(768);
+  const isMobile = useIsMobile();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterType>("All");
   const [sort, setSort] = useState<(typeof SORTS)[number]>("Newest");
@@ -277,7 +277,7 @@ export default function Library({ onNav, onSelectStop }: Props) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search stops, paths or annotations..."
-              style={{ border: "none", outline: "none", background: "transparent", fontFamily: "'Instrument Sans',sans-serif", fontSize: 14, color: "#0B0F0E", width: "100%" }}
+              style={{ border: "none", outline: "none", background: "transparent", fontFamily: "'Instrument Sans',sans-serif", fontSize: isMobile ? 16 : 14, color: "#0B0F0E", width: "100%" }}
             />
           </label>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
@@ -370,7 +370,7 @@ export default function Library({ onNav, onSelectStop }: Props) {
                       <div style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: ".06em", color: "#5A635F" }}>
                         {item.location}
                       </div>
-                      <div style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, color: "#7B8380" }}>
+                      <div style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, color: "#5A635F" }}>
                         {item.pathName}
                       </div>
                     </div>
@@ -548,7 +548,7 @@ function TableRow({ item, isLast, onOpen }: { item: LibraryItem; isLast: boolean
             {item.itemType === "annotation" ? "View 360° ↗" : "Open ↗"}
           </span>
         ) : (
-          <span style={{ fontSize: 11, color: "#9AA39E", fontFamily: "'Instrument Sans',sans-serif", fontWeight: 600, letterSpacing: ".06em" }}>
+          <span style={{ fontSize: 11, color: "#5A635F", fontFamily: "'Instrument Sans',sans-serif", fontWeight: 600, letterSpacing: ".06em" }}>
             VIEW MAP
           </span>
         )}

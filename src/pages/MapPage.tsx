@@ -46,7 +46,7 @@ function esriUrl(name: string) {
 
 // ── shared close button ───────────────────────────────────────────────────────
 const closeBtn: React.CSSProperties = {
-  width: 28, height: 28, borderRadius: 999, background: "#C9F24D",
+  width: 32, height: 32, borderRadius: 999, background: "#C9F24D",
   border: "1px solid #0B0F0E", cursor: "pointer", display: "grid",
   placeItems: "center", flexShrink: 0,
 };
@@ -95,7 +95,7 @@ function AddModal({
   onCreated,
   onNavTo360,
 }: AddModalProps) {
-  const isMobile = useIsMobile(640);
+  const isMobile = useIsMobile();
   const [tab, setTab] = useState<"stop" | "path">(initialTab || "stop");
 
   // Stop fields
@@ -146,12 +146,13 @@ function AddModal({
   const inp: React.CSSProperties = {
     width: "100%", padding: isMobile ? "7px 10px" : "10px 14px", borderRadius: 10,
     border: "1px solid rgba(11,15,14,.18)", background: "#F7F6F1",
-    fontFamily: "'Instrument Sans',sans-serif", fontSize: isMobile ? 12 : 13,
+    // 16px minimum on mobile: anything smaller makes iOS Safari zoom on focus.
+    fontFamily: "'Instrument Sans',sans-serif", fontSize: isMobile ? 16 : 13,
     color: "#0B0F0E", outline: "none", boxSizing: "border-box",
   };
   const lbl: React.CSSProperties = {
     display: "block", fontFamily: "'Instrument Sans',sans-serif",
-    fontSize: isMobile ? 9 : 10, fontWeight: 700, letterSpacing: ".08em", color: "#5A635F", marginBottom: isMobile ? 3 : 6,
+    fontSize: isMobile ? 11 : 10, fontWeight: 700, letterSpacing: ".08em", color: "#5A635F", marginBottom: isMobile ? 3 : 6,
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -395,14 +396,14 @@ function AddModal({
                     <button
                       type="button"
                       onClick={() => setPanoMode("upload")}
-                      style={{ padding: "3px 8px", borderRadius: 6, fontSize: 9, fontFamily: "'Instrument Sans',sans-serif", fontWeight: 700, border: "1px solid", borderColor: panoMode === "upload" ? "#0B0F0E" : "transparent", background: panoMode === "upload" ? "#0B0F0E" : "transparent", color: panoMode === "upload" ? "#C9F24D" : "#5A635F", cursor: "pointer" }}
+                      style={{ padding: "3px 8px", borderRadius: 6, fontSize: 11, fontFamily: "'Instrument Sans',sans-serif", fontWeight: 700, border: "1px solid", borderColor: panoMode === "upload" ? "#0B0F0E" : "transparent", background: panoMode === "upload" ? "#0B0F0E" : "transparent", color: panoMode === "upload" ? "#C9F24D" : "#5A635F", cursor: "pointer" }}
                     >
                       FILE
                     </button>
                     <button
                       type="button"
                       onClick={() => setPanoMode("url")}
-                      style={{ padding: "3px 8px", borderRadius: 6, fontSize: 9, fontFamily: "'Instrument Sans',sans-serif", fontWeight: 700, border: "1px solid", borderColor: panoMode === "url" ? "#0B0F0E" : "transparent", background: panoMode === "url" ? "#0B0F0E" : "transparent", color: panoMode === "url" ? "#C9F24D" : "#5A635F", cursor: "pointer" }}
+                      style={{ padding: "3px 8px", borderRadius: 6, fontSize: 11, fontFamily: "'Instrument Sans',sans-serif", fontWeight: 700, border: "1px solid", borderColor: panoMode === "url" ? "#0B0F0E" : "transparent", background: panoMode === "url" ? "#0B0F0E" : "transparent", color: panoMode === "url" ? "#C9F24D" : "#5A635F", cursor: "pointer" }}
                     >
                       URL
                     </button>
@@ -428,7 +429,7 @@ function AddModal({
                     {panoPreview && (
                       <div style={{ marginTop: 6, position: "relative", height: isMobile ? 50 : 80, borderRadius: 8, overflow: "hidden", border: "1px solid rgba(11,15,14,.15)" }}>
                         <img src={panoPreview} alt="Panorama preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                        <span style={{ position: "absolute", bottom: 4, right: 6, background: "rgba(11,15,14,.75)", color: "#C9F24D", padding: "1px 5px", borderRadius: 4, fontSize: 8, fontFamily: "'Instrument Sans',sans-serif", fontWeight: 700 }}>360° LOADED</span>
+                        <span style={{ position: "absolute", bottom: 4, right: 6, background: "rgba(11,15,14,.75)", color: "#C9F24D", padding: "1px 5px", borderRadius: 4, fontSize: 10, fontFamily: "'Instrument Sans',sans-serif", fontWeight: 700 }}>360° LOADED</span>
                       </div>
                     )}
                   </div>
@@ -493,7 +494,7 @@ function AddModal({
                   style={{
                     width: "100%", padding: isMobile ? "10px 0" : "13px 0", borderRadius: 10, border: "1px solid #0B0F0E",
                     background: (!stopName.trim() || !lat.trim() || !lng.trim()) ? "rgba(11,15,14,.1)" : "#C9F24D",
-                    color: (!stopName.trim() || !lat.trim() || !lng.trim()) ? "#9AA39E" : "#0B0F0E",
+                    color: (!stopName.trim() || !lat.trim() || !lng.trim()) ? "#5A635F" : "#0B0F0E",
                     fontWeight: 700, fontSize: isMobile ? 13 : 14, cursor: (!stopName.trim() || !lat.trim() || !lng.trim()) ? "not-allowed" : "pointer",
                     fontFamily: "inherit", transition: "background .15s",
                   }}
@@ -712,7 +713,7 @@ function AddModal({
                       : "#C9F24D",
                   color:
                     !pathName.trim() || !pathCity.trim() || validStopsCount < 2
-                      ? "#9AA39E"
+                      ? "#5A635F"
                       : "#0B0F0E",
                   fontWeight: 700,
                   fontSize: isMobile ? 13 : 14,
@@ -739,7 +740,7 @@ function AddModal({
 
 // ── main component ────────────────────────────────────────────────────────────
 export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedStopId }: Props) {
-  const isMobile = useIsMobile(768);
+  const isMobile = useIsMobile();
   const mapDivRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<ReturnType<typeof window.L.map> | null>(null);
   const layerGroupRef = useRef<ReturnType<typeof window.L.layerGroup> | null>(null);
@@ -770,6 +771,28 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
   const [pickingMode, setPickingMode] = useState(false);
   const [pickedCoords, setPickedCoords] = useState<{ lat: string; lng: string } | null>(null);
   const [geoJsonData, setGeoJsonData] = useState<any[]>([]);
+  // Replaces blocking window.alert() for import feedback.
+  const [toast, setToast] = useState<{ text: string; tone: "ok" | "error" } | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 3200);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  // Escape closes whatever is open, innermost first. Previously the only way out of
+  // a panel or the picker was hitting a small close button.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== "Escape") return;
+      if (addModalOpen) setAddModalOpen(false);
+      else if (pickingMode) setPickingMode(false);
+      else if (layersOpen) setLayersOpen(false);
+      else if (panel !== "none") setPanel("none");
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [addModalOpen, pickingMode, layersOpen, panel]);
 
   // search & view-more per popover
   const [pathSearch, setPathSearch] = useState("");
@@ -789,9 +812,14 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
   const pathIdxRef = useRef(pathIdx);
   const stopIdxRef = useRef(stopIdx);
   const queryRef = useRef(query);
+  // Read by the map's one-time click handler. Keeping this in a ref (rather than a
+  // dependency) is what stops the Leaflet instance being torn down and rebuilt —
+  // which used to reset the viewport the moment you entered "pick on map" mode.
+  const pickingModeRef = useRef(pickingMode);
   pathIdxRef.current = pathIdx;
   stopIdxRef.current = stopIdx;
   queryRef.current = query;
+  pickingModeRef.current = pickingMode;
 
   // Keep state in sync if parent selectedPathId / selectedStopId changes
   useEffect(() => {
@@ -812,7 +840,9 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
   // popover shared style (in mobile view, exactly 1/3 of the view, not more)
   const popoverStyle = (topOffset = 0): React.CSSProperties =>
     isMobile
-      ? { position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 2000, borderRadius: "16px 16px 0 0", height: "33.33vh", maxHeight: "33.33vh", minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column", background: "#FFFDF8", border: "1px solid rgba(11,15,14,.18)", boxShadow: "0 -12px 40px -8px rgba(11,15,14,.45)" }
+      // dvh (not vh) so the sheet tracks the collapsing mobile browser toolbar, and a
+      // 300px floor so it never shrinks to ~3 rows on a short screen.
+      ? { position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 2000, borderRadius: "16px 16px 0 0", height: "max(38dvh, 300px)", maxHeight: "70dvh", minHeight: 0, paddingBottom: "env(safe-area-inset-bottom, 0px)", overscrollBehavior: "contain", overflow: "hidden", display: "flex", flexDirection: "column", background: "#FFFDF8", border: "1px solid rgba(11,15,14,.18)", boxShadow: "0 -12px 40px -8px rgba(11,15,14,.45)" }
       : { position: "absolute", left: 52, top: topOffset, width: 300, borderRadius: 16, overflow: "hidden", background: "rgba(255,253,248,.97)", border: "1px solid rgba(11,15,14,.14)", backdropFilter: "blur(12px)", boxShadow: "0 12px 32px -16px rgba(11,15,14,.7)", zIndex: 600 };
 
   function applyBase(key: BaseKey, map: ReturnType<typeof window.L.map>) {
@@ -856,7 +886,11 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
       p.stops.forEach((s, si) => {
         const active = isSel && si === selStop;
         const visited = isSel && si < selStop;
-        const baseSize = z >= 12 ? 22 : z >= 8 ? 17 : 14;
+        // Leaflet's hit area equals the icon size, so touch needs a larger pin than
+        // a mouse cursor does — 14px at the default zoom is not reliably tappable.
+        const baseSize = isMobile
+          ? (z >= 12 ? 30 : z >= 8 ? 26 : 24)
+          : (z >= 12 ? 22 : z >= 8 ? 17 : 14);
         const markerSize = baseSize;
         const cls = "gp-pin" + (active ? " is-active" : visited ? " is-visited" : "");
 
@@ -891,6 +925,11 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
     });
   }
 
+  // drawMap closes over `paths`, `geoJsonData` and `isMobile`. The map listeners below
+  // are registered once, so they must reach the current copy, not the mount-time one.
+  const drawMapRef = useRef(drawMap);
+  drawMapRef.current = drawMap;
+
   useEffect(() => {
     if (!mapDivRef.current || !window.L) return;
     const L = window.L;
@@ -904,7 +943,7 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
     map.on("mouseout", () => setMouseCoords(null));
     map.on("zoomend", () => {
       setZoom(map.getZoom());
-      drawMap(map, lg, pathIdxRef.current, stopIdxRef.current, queryRef.current);
+      drawMapRef.current(map, lg, pathIdxRef.current, stopIdxRef.current, queryRef.current);
     });
 
     // Center on initial path/stop if specified, otherwise default to Arabian Peninsula
@@ -918,14 +957,14 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
       map.setView([24.0, 45.0], isMobile ? 5 : 5.5);
     }
 
-    drawMap(map, lg, pathIdxRef.current, stopIdxRef.current, queryRef.current);
+    drawMapRef.current(map, lg, pathIdxRef.current, stopIdxRef.current, queryRef.current);
 
     // Event listeners for coordinate picking
     const handlePickMap = () => { setPickingMode(true); };
     window.addEventListener('geopano-pick-map', handlePickMap);
 
     map.on('click', (e: { latlng: { lat: number; lng: number } }) => {
-      if (pickingMode) {
+      if (pickingModeRef.current) {
         setPickingMode(false);
         setPickedCoords({
           lat: e.latlng.lat.toFixed(5),
@@ -935,16 +974,17 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
       }
     });
 
-    return () => { 
-      map.remove(); mapRef.current = null; layerGroupRef.current = null; 
+    return () => {
+      map.remove(); mapRef.current = null; layerGroupRef.current = null;
       window.removeEventListener('geopano-pick-map', handlePickMap);
     };
+    // Mount-once: the map must outlive every state change, or panning/zoom context is lost.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pickingMode]);
+  }, []);
 
   useEffect(() => {
     if (mapRef.current && layerGroupRef.current) drawMap(mapRef.current, layerGroupRef.current, pathIdx, stopIdx, query);
-  }, [pathIdx, stopIdx, query, geoJsonData]);
+  }, [pathIdx, stopIdx, query, geoJsonData, isMobile]);
 
   useEffect(() => { if (mapRef.current) applyBase(base, mapRef.current); }, [base]);
 
@@ -976,7 +1016,7 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
   }
 
   const railBtn = (on: boolean): React.CSSProperties => ({
-    width: 40, height: 40, borderRadius: 12, display: "grid", placeItems: "center", cursor: "pointer",
+    width: isMobile ? 44 : 40, height: isMobile ? 44 : 40, borderRadius: 12, display: "grid", placeItems: "center", cursor: "pointer",
     boxShadow: "0 8px 20px -14px rgba(11,15,14,.7)",
     border: on ? "1px solid #0B0F0E" : "1px solid rgba(11,15,14,.2)",
     background: on ? "#C9F24D" : "#FFFDF8", color: on ? "#0B0F0E" : "#3E4744", transition: "background .2s, border .2s",
@@ -984,9 +1024,9 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
 
   const searchBar = (value: string, onChange: (v: string) => void, placeholder: string) => (
     <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "10px 12px 0", padding: "8px 12px", borderRadius: 10, background: "#F4F2ED", border: "1px solid rgba(11,15,14,.1)" }}>
-      <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="#9AA39E" strokeWidth="1.6" /><path d="M11 11l3.4 3.4" stroke="#9AA39E" strokeWidth="1.6" strokeLinecap="round" /></svg>
-      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} style={{ border: "none", outline: "none", background: "transparent", fontFamily: "'Instrument Sans',sans-serif", fontSize: 12, color: "#0B0F0E", width: "100%" }} />
-      {value && <button onClick={() => onChange("")} style={{ border: "none", background: "none", cursor: "pointer", padding: 0, color: "#9AA39E", lineHeight: 1, fontSize: 14 }}>×</button>}
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="#5A635F" strokeWidth="1.6" /><path d="M11 11l3.4 3.4" stroke="#5A635F" strokeWidth="1.6" strokeLinecap="round" /></svg>
+      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} style={{ border: "none", outline: "none", background: "transparent", fontFamily: "'Instrument Sans',sans-serif", fontSize: isMobile ? 16 : 12, color: "#0B0F0E", width: "100%" }} />
+      {value && <button onClick={() => onChange("")} style={{ border: "none", background: "none", cursor: "pointer", padding: 0, color: "#5A635F", lineHeight: 1, fontSize: 14 }}>×</button>}
     </div>
   );
 
@@ -1054,6 +1094,35 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
             onSelectStop(pId, sId);
             window.location.hash = `#/stop/${pId}/${sId}`;
           }}
+        />
+      )}
+
+      {/* Toast — non-blocking replacement for window.alert() */}
+      {toast && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            position: "absolute", top: 24, left: "50%", transform: "translateX(-50%)", zIndex: 1200,
+            display: "flex", alignItems: "center", gap: 10,
+            maxWidth: "calc(100vw - 32px)",
+            padding: "10px 18px", borderRadius: 999,
+            background: "#0B0F0E", color: toast.tone === "ok" ? "#C9F24D" : "#FCA5A5",
+            fontFamily: "'Instrument Sans',sans-serif", fontSize: 13, fontWeight: 600,
+            boxShadow: "0 8px 32px rgba(11,15,14,.5)",
+          }}
+        >
+          <span>{toast.tone === "ok" ? "✓" : "!"}</span>
+          <span>{toast.text}</span>
+        </div>
+      )}
+
+      {/* Mobile sheet backdrop — tap anywhere outside the sheet to dismiss it */}
+      {isMobile && panel !== "none" && (
+        <div
+          onClick={() => setPanel("none")}
+          aria-hidden="true"
+          style={{ position: "fixed", inset: 0, zIndex: 1900, background: "rgba(11,15,14,.18)" }}
         />
       )}
 
@@ -1131,7 +1200,7 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
                               <span style={{ display: "block", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</span>
                               <span style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 500, color: "#5A635F" }}>{p.city} · {p.stops.length} STOP{p.stops.length !== 1 ? "S" : ""}</span>
                             </span>
-                            <span style={{ color: "#9AA39E", fontSize: 13 }}>→</span>
+                            <span style={{ color: "#5A635F", fontSize: 13 }}>→</span>
                           </button>
                         );
                       })}
@@ -1358,9 +1427,9 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
                     try {
                       const geo = JSON.parse(e.target?.result as string);
                       setGeoJsonData(prev => [...prev, geo]);
-                      alert("GeoJSON imported successfully");
+                      setToast({ text: "GeoJSON imported", tone: "ok" });
                     } catch {
-                      alert("Invalid GeoJSON file");
+                      setToast({ text: "That file isn't valid GeoJSON", tone: "error" });
                     }
                   };
                   reader.readAsText(inp.files[0]);
@@ -1377,7 +1446,7 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
 
       {/* ── Right: layers + zoom controls ──────────────────────────────────── */}
       <div style={{ position: "absolute", right: "clamp(12px,2vw,24px)", top: "clamp(12px,2vw,24px)", zIndex: 500, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
-        <button onClick={() => setLayersOpen((o) => !o)} aria-label="Map layers" style={{ width: 40, height: 40, borderRadius: 12, display: "grid", placeItems: "center", cursor: "pointer", boxShadow: "0 8px 20px -14px rgba(11,15,14,.7)", border: layersOpen ? "1px solid #0B0F0E" : "1px solid rgba(11,15,14,.2)", background: layersOpen ? "#C9F24D" : "#FFFDF8", color: layersOpen ? "#0B0F0E" : "#3E4744", transition: "background .2s, border .2s" }}>
+        <button onClick={() => setLayersOpen((o) => !o)} aria-label="Map layers" style={{ width: isMobile ? 44 : 40, height: isMobile ? 44 : 40, borderRadius: 12, display: "grid", placeItems: "center", cursor: "pointer", boxShadow: "0 8px 20px -14px rgba(11,15,14,.7)", border: layersOpen ? "1px solid #0B0F0E" : "1px solid rgba(11,15,14,.2)", background: layersOpen ? "#C9F24D" : "#FFFDF8", color: layersOpen ? "#0B0F0E" : "#3E4744", transition: "background .2s, border .2s" }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 3.6l8.4 4.3-8.4 4.3-8.4-4.3 8.4-4.3z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /><path d="M4.6 12.4l7.4 3.8 7.4-3.8M4.6 16.4l7.4 3.8 7.4-3.8" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /></svg>
         </button>
         {layersOpen && (
@@ -1399,13 +1468,13 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
         {/* ── Zoom controls (below layers) ────────────────── */}
         <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
           {[{ label: "+", action: () => mapRef.current?.zoomIn() }, { label: "−", action: () => mapRef.current?.zoomOut() }].map(({ label, action }) => (
-            <button key={label} onClick={action} style={{ width: 40, height: 40, borderRadius: 12, background: "#FFFDF8", border: "1px solid rgba(11,15,14,.2)", fontSize: 17, fontWeight: 500, cursor: "pointer", boxShadow: "0 8px 20px -14px rgba(11,15,14,.7)", transition: "background .2s, border .2s, color .2s", color: "#3E4744", display: "grid", placeItems: "center" }}
+            <button key={label} onClick={action} style={{ width: isMobile ? 44 : 40, height: isMobile ? 44 : 40, borderRadius: 12, background: "#FFFDF8", border: "1px solid rgba(11,15,14,.2)", fontSize: 17, fontWeight: 500, cursor: "pointer", boxShadow: "0 8px 20px -14px rgba(11,15,14,.7)", transition: "background .2s, border .2s, color .2s", color: "#3E4744", display: "grid", placeItems: "center" }}
               onMouseEnter={(e) => { e.currentTarget.style.background = "#C9F24D"; e.currentTarget.style.color = "#0B0F0E"; e.currentTarget.style.borderColor = "#0B0F0E"; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "#FFFDF8"; e.currentTarget.style.color = "#3E4744"; e.currentTarget.style.borderColor = "rgba(11,15,14,.2)"; }}>
               {label}
             </button>
           ))}
-          <button onClick={resetToAllStops} aria-label="Reset view to all collected stops" title="Reset view to all collected stops" style={{ width: 40, height: 40, borderRadius: 12, background: "#FFFDF8", border: "1px solid rgba(11,15,14,.2)", cursor: "pointer", display: "grid", placeItems: "center", boxShadow: "0 8px 20px -14px rgba(11,15,14,.7)", transition: "background .2s, border .2s, color .2s", color: "#3E4744" }}
+          <button onClick={resetToAllStops} aria-label="Reset view to all collected stops" title="Reset view to all collected stops" style={{ width: isMobile ? 44 : 40, height: isMobile ? 44 : 40, borderRadius: 12, background: "#FFFDF8", border: "1px solid rgba(11,15,14,.2)", cursor: "pointer", display: "grid", placeItems: "center", boxShadow: "0 8px 20px -14px rgba(11,15,14,.7)", transition: "background .2s, border .2s, color .2s", color: "#3E4744" }}
             onMouseEnter={(e) => { e.currentTarget.style.background = "#C9F24D"; e.currentTarget.style.color = "#0B0F0E"; e.currentTarget.style.borderColor = "#0B0F0E"; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "#FFFDF8"; e.currentTarget.style.color = "#3E4744"; e.currentTarget.style.borderColor = "rgba(11,15,14,.2)"; }}>
             <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M3 7V4.6A1.6 1.6 0 014.6 3H7M13 3h2.4A1.6 1.6 0 0117 4.6V7M17 13v2.4a1.6 1.6 0 01-1.6 1.6H13M7 17H4.6A1.6 1.6 0 013 15.4V13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /><circle cx="10" cy="10" r="1.7" fill="currentColor" /></svg>
@@ -1425,7 +1494,7 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
             style={{
               position: "absolute",
               left: "clamp(12px,2vw,24px)",
-              bottom: isMobile ? 46 : "clamp(28px,3vw,40px)",
+              bottom: isMobile ? 22 : "clamp(12px,2vw,22px)",
               zIndex: 450,
               opacity: hideOnMobileSheet ? 0 : 1,
               pointerEvents: hideOnMobileSheet ? "none" : "auto",

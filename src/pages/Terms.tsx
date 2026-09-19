@@ -87,7 +87,7 @@ The Geopano name, logo, and product design may not be used without express writt
 ];
 
 export default function Terms({ onNav }: Props) {
-  const isMobile = useIsMobile(768);
+  const isMobile = useIsMobile();
   const [activeSec, setActiveSec] = useState<string>("1");
 
   const scrollTo = (id: string) => {
@@ -222,7 +222,7 @@ export default function Terms({ onNav }: Props) {
                     transition: "all .12s",
                   }}
                 >
-                  <span style={{ fontSize: 11, fontWeight: 700, color: activeSec === s.id ? "#0B0F0E" : "#9AA39E", width: 18, flexShrink: 0 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: activeSec === s.id ? "#0B0F0E" : "#5A635F", width: 18, flexShrink: 0 }}>
                     {s.id.padStart(2, "0")}
                   </span>
                   <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.title}</span>

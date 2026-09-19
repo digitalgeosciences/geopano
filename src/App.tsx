@@ -18,6 +18,8 @@ interface RouteState {
   stopId: string;
   yaw?: number;
   pitch?: number;
+  /** Zoom level. Absent on older links, which simply fall back to the default. */
+  hfov?: number;
   annId?: string;
 }
 
@@ -28,18 +30,19 @@ function parseHash(hash: string): RouteState {
   const params = new URLSearchParams(qs || "");
   const yaw = params.has("yaw") ? parseFloat(params.get("yaw")!) : undefined;
   const pitch = params.has("pitch") ? parseFloat(params.get("pitch")!) : undefined;
+  const hfov = params.has("hfov") ? parseFloat(params.get("hfov")!) : undefined;
 
   // #/stop/{pathId}/{stopId}
   if (segments[0] === "stop" && segments[1] && segments[2]) {
     const annId = segments[3] === "ann" && segments[4] ? segments[4] : undefined;
-    return { view: "stop", pathId: segments[1], stopId: segments[2], yaw, pitch, annId };
+    return { view: "stop", pathId: segments[1], stopId: segments[2], yaw, pitch, hfov, annId };
   }
   if (segments[0] === "stop" && segments[1]) {
     const defaultStop = segments[1] === "pt00001" ? "sp00001" : "sp00009";
-    return { view: "stop", pathId: segments[1], stopId: defaultStop, yaw, pitch };
+    return { view: "stop", pathId: segments[1], stopId: defaultStop, yaw, pitch, hfov };
   }
   if (segments[0] === "stop") {
-    return { view: "stop", pathId: "pt00001", stopId: "sp00001", yaw, pitch };
+    return { view: "stop", pathId: "pt00001", stopId: "sp00001", yaw, pitch, hfov };
   }
   // #/map/{pathId}/{stopId}
   if (segments[0] === "map" && segments[1] && segments[2]) {
@@ -59,7 +62,7 @@ function parseHash(hash: string): RouteState {
   return { view: "landing", pathId: "sp00009-path", stopId: "sp00009" };
 }
 
-function buildHash(view: View, pathId?: string, stopId?: string, extra?: { yaw?: number; pitch?: number; annId?: string }): string {
+function buildHash(view: View, pathId?: string, stopId?: string, extra?: { yaw?: number; pitch?: number; hfov?: number; annId?: string }): string {
   if (view === "landing") return "#/";
   if (view === "stop" && pathId && stopId) {
     let h = `#/stop/${pathId}/${stopId}`;
@@ -67,6 +70,7 @@ function buildHash(view: View, pathId?: string, stopId?: string, extra?: { yaw?:
     const params: string[] = [];
     if (extra?.yaw !== undefined) params.push(`yaw=${extra.yaw.toFixed(1)}`);
     if (extra?.pitch !== undefined) params.push(`pitch=${extra.pitch.toFixed(1)}`);
+    if (extra?.hfov !== undefined) params.push(`hfov=${extra.hfov.toFixed(1)}`);
     if (params.length) h += `?${params.join("&")}`;
     return h;
   }
@@ -84,6 +88,7 @@ export default function App() {
   const [selectedStopId, setSelectedStopId] = useState<string | undefined>(initial.stopId);
   const [initialYaw, setInitialYaw] = useState<number | undefined>(initial.yaw);
   const [initialPitch, setInitialPitch] = useState<number | undefined>(initial.pitch);
+  const [initialHfov, setInitialHfov] = useState<number | undefined>(initial.hfov);
   const [initialAnnId, setInitialAnnId] = useState<string | undefined>(initial.annId);
 
   // Sync state → hash
@@ -103,6 +108,7 @@ export default function App() {
       setSelectedStopId(route.stopId);
       setInitialYaw(route.yaw);
       setInitialPitch(route.pitch);
+      setInitialHfov(route.hfov);
       setInitialAnnId(route.annId);
     }
     window.addEventListener("hashchange", onHashChange);
@@ -114,6 +120,8 @@ export default function App() {
     setSelectedStopId(stopId);
     setInitialYaw(yaw);
     setInitialPitch(pitch);
+    // Moving between stops resets zoom: the saved hfov belonged to the previous stop.
+    setInitialHfov(undefined);
     setInitialAnnId(undefined);
     if (view === "stop") {
       const hash = buildHash("stop", pathId, stopId, { yaw, pitch });
@@ -127,6 +135,7 @@ export default function App() {
     setView(v);
     setInitialYaw(undefined);
     setInitialPitch(undefined);
+    setInitialHfov(undefined);
     setInitialAnnId(undefined);
     if (v === "map") {
       setSelectedPathId(undefined);
@@ -146,6 +155,7 @@ export default function App() {
     setView("stop");
     setInitialYaw(undefined);
     setInitialPitch(undefined);
+    setInitialHfov(undefined);
     setInitialAnnId(undefined);
     const hash = buildHash("stop", pathId, stopId);
     window.history.pushState(null, "", hash);
@@ -194,6 +204,7 @@ export default function App() {
           onSelectStop={handleSelectStop}
           initialYaw={initialYaw}
           initialPitch={initialPitch}
+          initialHfov={initialHfov}
           initialAnnId={initialAnnId}
         />
       )}

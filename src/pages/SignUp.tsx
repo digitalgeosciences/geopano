@@ -16,7 +16,7 @@ const FEATURES = [
 ];
 
 export default function SignUp({ onNav }: Props) {
-  const isMobile = useIsMobile(768);
+  const isMobile = useIsMobile();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -38,7 +38,8 @@ export default function SignUp({ onNav }: Props) {
     border: focused === id ? "1.5px solid #0B0F0E" : "1.5px solid rgba(11,15,14,.18)",
     background: "#FFFDF8",
     fontFamily: "'Instrument Sans', sans-serif",
-    fontSize: 15,
+    // 16px minimum on mobile: anything smaller makes iOS Safari zoom on focus.
+    fontSize: isMobile ? 16 : 15,
     color: "#0B0F0E",
     outline: "none",
     transition: "border-color .15s",
@@ -168,7 +169,7 @@ export default function SignUp({ onNav }: Props) {
               </div>
               <div>
                 <div style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 600, fontSize: 14, letterSpacing: "-.01em", marginBottom: 3 }}>{f.label}</div>
-                <div style={{ fontSize: 13, color: "#9AA39E", lineHeight: 1.5 }}>{f.detail}</div>
+                <div style={{ fontSize: 13, color: "#5A635F", lineHeight: 1.5 }}>{f.detail}</div>
               </div>
             </div>
           ))}
@@ -320,7 +321,7 @@ export default function SignUp({ onNav }: Props) {
                 borderRadius: 999,
                 border: "none",
                 background: (!name || !email || !password || !role || password.length < 8) ? "rgba(11,15,14,.12)" : "#C9F24D",
-                color: (!name || !email || !password || !role || password.length < 8) ? "#9AA39E" : "#0B0F0E",
+                color: (!name || !email || !password || !role || password.length < 8) ? "#5A635F" : "#0B0F0E",
                 fontWeight: 700,
                 fontSize: 15,
                 cursor: (!name || !email || !password || !role || password.length < 8) ? "not-allowed" : "pointer",
@@ -348,7 +349,7 @@ export default function SignUp({ onNav }: Props) {
             {/* Divider */}
             <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
               <div style={{ flex: 1, height: 1, background: "rgba(11,15,14,.1)" }} />
-              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: ".14em", color: "#9AA39E" }}>OR</span>
+              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: ".14em", color: "#5A635F" }}>OR</span>
               <div style={{ flex: 1, height: 1, background: "rgba(11,15,14,.1)" }} />
             </div>
 
@@ -366,7 +367,7 @@ export default function SignUp({ onNav }: Props) {
           </form>
 
           {/* Legal */}
-          <p style={{ marginTop: 28, fontSize: 12, color: "#9AA39E", lineHeight: 1.6, textAlign: "center" }}>
+          <p style={{ marginTop: 28, fontSize: 12, color: "#5A635F", lineHeight: 1.6, textAlign: "center" }}>
             By creating an account you agree to the{" "}
             <button onClick={() => onNav("terms")} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: "#5A635F", textDecoration: "underline", fontSize: "inherit", fontFamily: "inherit" }}>Terms of Service</button>{" "}
             and{" "}

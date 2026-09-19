@@ -6,6 +6,27 @@ import { supportsWebGL } from "../utils/webgl";
 import PageFooter from "../components/PageFooter";
 
 const paths = getAllPaths();
+
+// ── view bookmarks ───────────────────────────────────────────────────────────
+// A bookmark is a saved camera orientation for one stop. Stored per stop so the
+// viewer can reopen exactly where the user left off.
+
+interface ViewBookmark { yaw: number; pitch: number; hfov: number; }
+
+const bookmarkKey = (id: string) => `geopano_bookmark_${id}`;
+
+function readBookmark(id: string): ViewBookmark | null {
+  try {
+    const raw = localStorage.getItem(bookmarkKey(id));
+    if (!raw) return null;
+    const p = JSON.parse(raw);
+    if (typeof p?.yaw !== "number" || typeof p?.pitch !== "number") return null;
+    return { yaw: p.yaw, pitch: p.pitch, hfov: typeof p.hfov === "number" ? p.hfov : 72 };
+  } catch {
+    return null;
+  }
+}
+
 // ── types ────────────────────────────────────────────────────────────────────
 
 interface SpherePoint { yaw: number; pitch: number; }
@@ -43,6 +64,9 @@ interface Props {
   onSelectStop: (pathId: string, stopId: string, yaw?: number, pitch?: number) => void;
   initialYaw?: number;
   initialPitch?: number;
+  /** Horizontal field of view — the zoom level. Without it a restored view points
+   *  the right way but is framed wrong, which defeats sharing a specific feature. */
+  initialHfov?: number;
   initialAnnId?: string;
 }
 
@@ -315,8 +339,8 @@ function persistNavArrows(pathId: string, stopId: string, config: NavArrowConfig
 
 // ── component ─────────────────────────────────────────────────────────────────
 
-export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initialYaw, initialPitch, initialAnnId }: Props) {
-  const isMobile = useIsMobile(640);
+export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initialYaw, initialPitch, initialHfov, initialAnnId }: Props) {
+  const isMobile = useIsMobile();
   const [webglError, setWebglError] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const [annShareCopied, setAnnShareCopied] = useState<string | null>(null);
@@ -347,6 +371,36 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
     const saved = localStorage.getItem(`geopano_north_${stopId}`);
     setNorthHeading(saved ? parseFloat(saved) : 0);
   }, [stopId]);
+
+  // Saved camera orientation for this stop, restored on load unless the URL
+  // carries explicit yaw/pitch (a shared link must always win over a bookmark).
+  const [bookmark, setBookmark] = useState<ViewBookmark | null>(() => readBookmark(stopId));
+
+  // Non-blocking error feedback, replacing window.alert() on GeoJSON import.
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 3200);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  useEffect(() => {
+    setBookmark(readBookmark(stopId));
+  }, [stopId]);
+
+  function toggleBookmark() {
+    if (bookmark) {
+      localStorage.removeItem(bookmarkKey(stopId));
+      setBookmark(null);
+      return;
+    }
+    const next: ViewBookmark = { yaw: vs.yaw, pitch: vs.pitch, hfov: vs.hfov };
+    try {
+      localStorage.setItem(bookmarkKey(stopId), JSON.stringify(next));
+      setBookmark(next);
+    } catch { /* storage full or blocked — leave unbookmarked */ }
+  }
 
   // add-annotation flow
   const [addAnnMode, setAddAnnMode] = useState(false);
@@ -435,9 +489,14 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
     setLoadProgress(15);
 
     const isCarStop = curStop.id.startsWith("sp0000") && parseInt(curStop.id.slice(2)) <= 4;
-    const startYaw = initialYaw ?? curStop.defaultYaw ?? (isCarStop ? 85 : 0);
-    const startPitch = initialPitch ?? curStop.defaultPitch ?? (isCarStop ? 14 : 0);
-    const startHfov = 72; // Natural, focused perspective (not wide fish-eye)
+    // Precedence: explicit URL params > saved bookmark > stop default. A shared link
+    // must reproduce its own view even when the viewer holds a bookmark for this stop.
+    // Read storage directly rather than the `bookmark` state — depending on that state
+    // here would re-initialise the whole viewer every time a bookmark is toggled.
+    const saved = initialYaw === undefined && initialPitch === undefined ? readBookmark(stopId) : null;
+    const startYaw = initialYaw ?? saved?.yaw ?? curStop.defaultYaw ?? (isCarStop ? 85 : 0);
+    const startPitch = initialPitch ?? saved?.pitch ?? curStop.defaultPitch ?? (isCarStop ? 14 : 0);
+    const startHfov = initialHfov ?? saved?.hfov ?? 72; // 72 = natural perspective, not fish-eye
 
     const hasPreview = Boolean(previewUrl && previewUrl !== panoramaUrl);
 
@@ -606,7 +665,10 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
     if (initialPitch !== undefined) {
       try { (v as any).setPitch(initialPitch); } catch { /* */ }
     }
-  }, [initialYaw, initialPitch]);
+    if (initialHfov !== undefined) {
+      try { (v as any).setHfov(initialHfov); } catch { /* */ }
+    }
+  }, [initialYaw, initialPitch, initialHfov]);
 
   // Always keep auto-rotation stopped
   useEffect(() => {
@@ -766,8 +828,25 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
     onSelectStop(curPath.id, sid, targetYaw, targetPitch);
   }
 
+  // Escape closes whatever is open, innermost first. Declared here rather than beside
+  // the other state because it reads `resetAddAnn`, defined just above.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== "Escape") return;
+      if (addAnnMode) { setAddAnnMode(false); resetAddAnn(); }
+      else if (openAnnId) setOpenAnnId(null);
+      else if (compassMenuOpen) setCompassMenuOpen(false);
+      else if (annListOpen) setAnnListOpen(false);
+      else if (pathPanelOpen) setPathPanelOpen(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addAnnMode, openAnnId, compassMenuOpen, annListOpen, pathPanelOpen]);
+
   function shareView() {
-    const url = `${window.location.origin}${window.location.pathname}#/stop/${pathId}/${stopId}?yaw=${vs.yaw.toFixed(1)}&pitch=${vs.pitch.toFixed(1)}`;
+    // hfov included so the recipient sees the same framing, not just the same direction.
+    const url = `${window.location.origin}${window.location.pathname}#/stop/${pathId}/${stopId}?yaw=${vs.yaw.toFixed(1)}&pitch=${vs.pitch.toFixed(1)}&hfov=${vs.hfov.toFixed(1)}`;
     navigator.clipboard.writeText(url).then(() => {
       setShareCopied(true);
       setTimeout(() => setShareCopied(false), 2000);
@@ -811,7 +890,7 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
   // ── styles ────────────────────────────────────────────────────────────────
 
   const railBtn = (on: boolean): React.CSSProperties => ({
-    width: 40, height: 40, borderRadius: 12, display: "grid", placeItems: "center", cursor: "pointer",
+    width: isMobile ? 44 : 40, height: isMobile ? 44 : 40, borderRadius: 12, display: "grid", placeItems: "center", cursor: "pointer",
     boxShadow: "0 8px 20px -14px rgba(11,15,14,.7)",
     border: on ? "1px solid #0B0F0E" : "1px solid rgba(11,15,14,.2)",
     background: on ? "#C9F24D" : "#FFFDF8",
@@ -822,7 +901,8 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
   const inputStyle: React.CSSProperties = {
     width: "100%", padding: "10px 14px", borderRadius: 10,
     border: "1px solid rgba(11,15,14,.18)", background: "#F7F6F1",
-    fontFamily: "'Instrument Sans',sans-serif", fontSize: 14,
+    // 16px minimum on mobile: anything smaller makes iOS Safari zoom on focus.
+    fontFamily: "'Instrument Sans',sans-serif", fontSize: isMobile ? 16 : 14,
     color: "#0B0F0E", outline: "none", boxSizing: "border-box",
   };
 
@@ -853,7 +933,7 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
             <div style={{ maxWidth: 420, width: "100%", background: "#151B19", border: "1.5px solid rgba(255,253,248,.16)", borderRadius: 18, padding: "26px 22px", textAlign: "center", boxShadow: "0 24px 60px rgba(0,0,0,.7)" }}>
               <div style={{ width: 46, height: 46, borderRadius: 999, background: "rgba(239,68,68,.15)", border: "1.5px solid #EF4444", color: "#EF4444", display: "grid", placeItems: "center", margin: "0 auto 14px", fontSize: 22, fontWeight: 700 }}>!</div>
               <h2 style={{ fontSize: 17, fontWeight: 700, margin: "0 0 8px", color: "#FFFDF8", fontFamily: "'Bricolage Grotesque',sans-serif" }}>Hardware Acceleration Needed</h2>
-              <p style={{ fontSize: 13, color: "#9AA39E", lineHeight: 1.55, margin: "0 0 16px" }}>
+              <p style={{ fontSize: 13, color: "#5A635F", lineHeight: 1.55, margin: "0 0 16px" }}>
                 Your browser needs hardware acceleration enabled to render WebGL 360° panoramas smoothly:
               </p>
               <div style={{ textAlign: "left", fontSize: 12, color: "#D1D5DB", background: "rgba(255,255,255,.05)", padding: "12px 14px", borderRadius: 10, marginBottom: 18, lineHeight: 1.8, fontFamily: "'Instrument Sans',sans-serif" }}>
@@ -882,6 +962,26 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
             transition: "width .3s ease-out",
             boxShadow: "0 0 8px rgba(201,242,77,.5)",
           }} />
+        </div>
+      )}
+
+      {/* Toast — non-blocking replacement for window.alert() */}
+      {toast && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            position: "absolute", top: 24, left: "50%", transform: "translateX(-50%)", zIndex: 1200,
+            display: "flex", alignItems: "center", gap: 10,
+            maxWidth: "calc(100vw - 32px)",
+            padding: "10px 18px", borderRadius: 999,
+            background: "#0B0F0E", color: "#FCA5A5",
+            fontFamily: "'Instrument Sans',sans-serif", fontSize: 13, fontWeight: 600,
+            boxShadow: "0 8px 32px rgba(11,15,14,.5)",
+          }}
+        >
+          <span>!</span>
+          <span>{toast}</span>
         </div>
       )}
 
@@ -1328,7 +1428,7 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
                     resetAddAnn();
                     setPathPanelOpen(false);
                     setAnnListOpen(true);
-                  } catch { alert("Could not parse GeoJSON file."); }
+                  } catch { setToast("Could not parse that GeoJSON file"); }
                 };
                 reader.readAsText(file);
               };
@@ -1374,8 +1474,12 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
               bottom: isMobile ? 0 : undefined,
               top: isMobile ? undefined : 0,
               width: isMobile ? "100%" : "min(320px,calc(100vw - 75px))",
-              height: isMobile ? "33.33vh" : undefined,
-              maxHeight: isMobile ? "33.33vh" : "calc(100vh - 120px)",
+              // dvh tracks the collapsing mobile toolbar; the 300px floor stops the
+              // sheet collapsing to ~3 rows on short screens.
+              height: isMobile ? "max(38dvh, 300px)" : undefined,
+              maxHeight: isMobile ? "70dvh" : "calc(100dvh - 120px)",
+              paddingBottom: isMobile ? "env(safe-area-inset-bottom, 0px)" : undefined,
+              overscrollBehavior: "contain",
               display: "flex",
               flexDirection: "column",
               borderRadius: isMobile ? "16px 16px 0 0" : 20,
@@ -1575,8 +1679,12 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
               bottom: isMobile ? 0 : undefined,
               top: isMobile ? undefined : 48,
               width: isMobile ? "100%" : "min(320px,calc(100vw - 75px))",
-              height: isMobile ? "33.33vh" : undefined,
-              maxHeight: isMobile ? "33.33vh" : "calc(100vh - 120px)",
+              // dvh tracks the collapsing mobile toolbar; the 300px floor stops the
+              // sheet collapsing to ~3 rows on short screens.
+              height: isMobile ? "max(38dvh, 300px)" : undefined,
+              maxHeight: isMobile ? "70dvh" : "calc(100dvh - 120px)",
+              paddingBottom: isMobile ? "env(safe-area-inset-bottom, 0px)" : undefined,
+              overscrollBehavior: "contain",
               display: "flex",
               flexDirection: "column",
               borderRadius: isMobile ? "16px 16px 0 0" : 20,
@@ -1656,8 +1764,10 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
             top: isMobile ? undefined : "clamp(12px,2vw,24px)",
             zIndex: 600,
             width: isMobile ? "100%" : "min(310px,calc(100vw - 32px))",
-            height: isMobile ? "33.33vh" : undefined,
-            maxHeight: isMobile ? "33.33vh" : "calc(100% - 116px)",
+            height: isMobile ? "max(38dvh, 300px)" : undefined,
+            maxHeight: isMobile ? "70dvh" : "calc(100% - 116px)",
+            paddingBottom: isMobile ? "env(safe-area-inset-bottom, 0px)" : undefined,
+            overscrollBehavior: "contain",
             display: "flex",
             flexDirection: "column",
             borderRadius: isMobile ? "16px 16px 0 0" : 18,
@@ -1933,7 +2043,10 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
       <div
         className="gp-bottom-controls"
         style={{
-          display: isMobile && (annListOpen || pathPanelOpen || openAnn !== null || addAnnMode) ? "none" : undefined,
+          // `openAnn` comes from Array.find(), which yields undefined — not null — when
+          // nothing matches. Comparing against null was therefore always true, hiding
+          // these controls on mobile whenever no annotation was open.
+          display: isMobile && (annListOpen || pathPanelOpen || !!openAnn || addAnnMode) ? "none" : undefined,
         }}
       >
         {/* Compass / North arrow with click menu */}
@@ -2118,16 +2231,17 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
               </>
           }
         </div>
-        {/* Copy coordinates */}
+        {/* Bookmark this view (yaw + pitch + zoom), restored next time this stop opens */}
         <button
           className="gp-ctrl-btn-sm"
-          title="Copy yaw and pitch"
-          onClick={() => { navigator.clipboard.writeText(`YAW: ${vs.yaw.toFixed(2)}°, PITCH: ${vs.pitch.toFixed(2)}°`).catch(() => {}); }}
-          style={{ width: 32, height: 32, borderRadius: 999, background: "rgba(11,15,14,.62)", backdropFilter: "blur(8px)", border: "none", cursor: "pointer", display: "grid", placeItems: "center", color: "#FFFDF8" }}
+          title={bookmark ? "Bookmarked — click to remove" : "Bookmark this view"}
+          aria-label={bookmark ? "Remove view bookmark" : "Bookmark this view"}
+          aria-pressed={!!bookmark}
+          onClick={toggleBookmark}
+          style={{ width: 32, height: 32, borderRadius: 999, background: bookmark ? "#C9F24D" : "rgba(11,15,14,.62)", backdropFilter: "blur(8px)", border: "none", cursor: "pointer", display: "grid", placeItems: "center", color: bookmark ? "#0B0F0E" : "#FFFDF8", transition: "background .2s, color .2s" }}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <rect x="8" y="8" width="12" height="14" rx="2.5" stroke="currentColor" strokeWidth="1.7" />
-            <path d="M16 8V5.5A1.5 1.5 0 0014.5 4h-9A1.5 1.5 0 004 5.5v11A1.5 1.5 0 005.5 18H8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+          <svg width="14" height="14" viewBox="0 0 24 24" fill={bookmark ? "currentColor" : "none"}>
+            <path d="M6 4.5A1.5 1.5 0 017.5 3h9A1.5 1.5 0 0118 4.5V21l-6-4.2L6 21V4.5z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
           </svg>
         </button>
         {/* Share view link */}
@@ -2152,7 +2266,7 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
           className="gp-add-ann-toolbar"
           style={{
             position: "absolute",
-            bottom: isMobile ? "max(12px, env(safe-area-inset-bottom, 12px))" : "clamp(28px,3vw,40px)",
+            bottom: isMobile ? "max(12px, env(safe-area-inset-bottom, 12px))" : "clamp(12px,2vw,24px)",
             left: "50%",
             transform: "translateX(-50%)",
             zIndex: 100,
@@ -2356,7 +2470,7 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
               <path d="M12 5l7 14H5l7-14z" fill="currentColor" opacity=".9" />
             </svg>
-            <span style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: ".06em", color: "#FFFDF8", textTransform: "uppercase", maxWidth: 50, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "center" }}>
+            <span style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: ".06em", color: "#FFFDF8", textTransform: "uppercase", maxWidth: 50, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "center" }}>
               {arrow.isNext ? "NEXT" : "PREV"}
             </span>
           </button>

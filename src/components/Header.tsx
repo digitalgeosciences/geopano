@@ -92,7 +92,7 @@ export default function Header({ view, onNav }: HeaderProps) {
             onClick={() => setMenuOpen((o) => !o)}
             aria-label={menuOpen ? "Close menu" : "Open menu"}
             aria-expanded={menuOpen}
-            style={{ width: 38, height: 38, borderRadius: 10, border: "1px solid rgba(11,15,14,.18)", background: menuOpen ? "#0B0F0E" : "#FFFDF8", color: menuOpen ? "#F4F2ED" : "#0B0F0E", display: "grid", placeItems: "center", cursor: "pointer", transition: "background .15s", flexShrink: 0 }}
+            style={{ width: 44, height: 44, borderRadius: 10, border: "1px solid rgba(11,15,14,.18)", background: menuOpen ? "#0B0F0E" : "#FFFDF8", color: menuOpen ? "#F4F2ED" : "#0B0F0E", display: "grid", placeItems: "center", cursor: "pointer", transition: "background .15s", flexShrink: 0 }}
           >
             {menuOpen ? (
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">

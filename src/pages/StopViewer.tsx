@@ -335,10 +335,6 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
   const [pathPanelOpen, setPathPanelOpen] = useState(false);
   const [openAnnId, setOpenAnnId] = useState<string | null>(null);
 
-  // Navigation arrow config
-  const [navConfigOpen, setNavConfigOpen] = useState(false);
-  const [placingArrow, setPlacingArrow] = useState<"next" | "prev" | null>(null);
-
   // Compass menu state and North calibration
   const [compassMenuOpen, setCompassMenuOpen] = useState(false);
   const [northHeading, setNorthHeading] = useState<number>(() => {
@@ -388,8 +384,6 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
     setLocalAnns(loadAnns(pathId, stopId, curStop.annotations));
     setArrowConfig(loadNavArrows(pathId, stopId));
     setOpenAnnId(initialAnnId ?? null);
-    setPlacingArrow(null);
-    setNavConfigOpen(false);
     resetAddAnn();
   }, [pathId, stopId]);
 
@@ -431,7 +425,7 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
     }
   }
 
-  const anyPanelOpen = annListOpen || pathPanelOpen || navConfigOpen || !!openAnnId || addAnnMode || formVisible;
+  const anyPanelOpen = annListOpen || pathPanelOpen || !!openAnnId || addAnnMode || formVisible;
 
   // Pannellum init with Progressive Loading (Google Street View approach)
   useEffect(() => {
@@ -638,21 +632,6 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
   // ── annotation placement ──────────────────────────────────────────────────
 
   function handleCaptureClick(e: React.MouseEvent<HTMLDivElement>) {
-    // Arrow placement mode
-    if (placingArrow) {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const sp = pixelToSphere(e.clientX - rect.left, e.clientY - rect.top, rect.width, rect.height, vs.yaw, vs.pitch, vs.hfov);
-      const newConfig = { ...arrowConfig };
-      if (placingArrow === "next") {
-        newConfig.nextArrow = { yaw: sp.yaw, pitch: sp.pitch };
-      } else {
-        newConfig.prevArrow = { yaw: sp.yaw, pitch: sp.pitch };
-      }
-      setArrowConfig(newConfig);
-      persistNavArrows(pathId, stopId, newConfig);
-      setPlacingArrow(null);
-      return;
-    }
     if (!addAnnMode || formVisible) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const sp = pixelToSphere(e.clientX - rect.left, e.clientY - rect.top, rect.width, rect.height, vs.yaw, vs.pitch, vs.hfov);
@@ -1065,7 +1044,7 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
 
       {/* Click-capture div (annotation mode only) */}
       <div
-        style={{ position: "absolute", inset: 0, zIndex: 9, pointerEvents: (addAnnMode && !formVisible) || placingArrow ? "auto" : "none", cursor: (addAnnMode && !formVisible) || placingArrow ? "crosshair" : "default" }}
+        style={{ position: "absolute", inset: 0, zIndex: 9, pointerEvents: addAnnMode && !formVisible ? "auto" : "none", cursor: addAnnMode && !formVisible ? "crosshair" : "default" }}
         onClick={handleCaptureClick}
         onMouseMove={handleCaptureMove}
         onMouseLeave={() => setCursorSphere(null)}
@@ -1232,7 +1211,7 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
 
         {/* Rail */}
         <div style={{ pointerEvents: "auto", display: "flex", flexDirection: "column", gap: 8, width: 40 }}>
-          <button onClick={() => { setAnnListOpen((o) => !o); setPathPanelOpen(false); setNavConfigOpen(false); setPlacingArrow(null); }} aria-label="Annotations" title="Annotations" style={railBtn(annListOpen)}>
+          <button onClick={() => { setAnnListOpen((o) => !o); setPathPanelOpen(false); }} aria-label="Annotations" title="Annotations" style={railBtn(annListOpen)}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
               <rect x="3.5" y="5" width="17" height="12.5" rx="4" stroke="currentColor" strokeWidth="1.7" />
               <circle cx="8.6" cy="11.2" r="2" fill="currentColor" />
@@ -1240,18 +1219,11 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
             </svg>
           </button>
           {curPath.stops.length > 1 && (
-            <button onClick={() => { setPathPanelOpen((o) => !o); setAnnListOpen(false); setNavConfigOpen(false); setPlacingArrow(null); }} aria-label="Path stops" title="Path stops" style={railBtn(pathPanelOpen)}>
+            <button onClick={() => { setPathPanelOpen((o) => !o); setAnnListOpen(false); }} aria-label="Path stops" title="Path stops" style={railBtn(pathPanelOpen)}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                 <path d="M4 18l6-9 5 6 5-9" stroke="currentColor" strokeWidth="1.8" strokeDasharray="4 3" />
                 <circle cx="4" cy="18" r="2.4" fill="currentColor" />
                 <circle cx="20" cy="6" r="2.4" fill="currentColor" />
-              </svg>
-            </button>
-          )}
-          {curPath.stops.length > 1 && (
-            <button onClick={() => { setNavConfigOpen((o) => !o); setAnnListOpen(false); setPathPanelOpen(false); setPlacingArrow(null); }} aria-label="Configure navigation arrows" title="Configure navigation arrows" style={railBtn(navConfigOpen)}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
           )}
@@ -1323,20 +1295,20 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
             </svg>
           </button>
           <button
-            aria-label="Export annotations to GeoJSON"
-            title="Export annotations to GeoJSON file"
-            style={railBtn(false)}
-            onClick={() => exportAnnotationsGeoJSON(pathId, stopId, localAnns)}
+            onClick={() => {
+              const on = !addAnnMode;
+              setAddAnnMode(on);
+              if (!on) resetAddAnn();
+              setAnnListOpen(false);
+              setPathPanelOpen(false);
+            }}
+            aria-label="Add annotation"
+            title="Add annotation"
+            style={railBtn(addAnnMode)}
           >
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M12 4v10m0 0l-4-4m4 4l4-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M4 17v1a2 2 0 002 2h12a2 2 0 002-2v-1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-            </svg>
-          </button>
-          <button onClick={() => { const on = !addAnnMode; setAddAnnMode(on); if (!on) resetAddAnn(); setAnnListOpen(false); setPathPanelOpen(false); setNavConfigOpen(false); setPlacingArrow(null); }} aria-label="Add annotation" title="Add annotation" style={railBtn(addAnnMode)}>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-              <path d="M4 20h4l10.5-10.5a2.828 2.828 0 10-4-4L4 16v4z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-              <path d="M14.5 5.5l4 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
           </button>
         </div>
@@ -1350,10 +1322,10 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
               left: isMobile ? 0 : 52,
               right: isMobile ? 0 : undefined,
               bottom: isMobile ? 0 : undefined,
-              top: isMobile ? undefined : 118,
+              top: isMobile ? undefined : 0,
               width: isMobile ? "100%" : "min(320px,calc(100vw - 75px))",
               height: isMobile ? "33.33vh" : undefined,
-              maxHeight: isMobile ? "33.33vh" : "calc(100vh - 200px)",
+              maxHeight: isMobile ? "33.33vh" : "calc(100vh - 120px)",
               display: "flex",
               flexDirection: "column",
               borderRadius: isMobile ? "16px 16px 0 0" : 20,
@@ -1372,10 +1344,9 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
                   onClick={() => exportAnnotationsGeoJSON(pathId, stopId, localAnns)}
                   title="Export GeoJSON"
                   aria-label="Export GeoJSON"
-                  style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid rgba(11,15,14,.2)", background: "#FFFDF8", fontSize: 11, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontFamily: "'Instrument Sans',sans-serif" }}
+                  style={{ width: 28, height: 28, borderRadius: 999, border: "1px solid rgba(11,15,14,.2)", background: "#FFFDF8", cursor: "pointer", display: "grid", placeItems: "center", color: "#0B0F0E", flexShrink: 0 }}
                 >
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 4v10m0 0l-3-3m3 3l3-3M4 17v1a2 2 0 002 2h12a2 2 0 002-2v-1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  GeoJSON
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 4v10m0 0l-3-3m3 3l3-3M4 17v1a2 2 0 002 2h12a2 2 0 002-2v-1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 </button>
                 <button onClick={() => setAnnListOpen(false)} style={{ width: 28, height: 28, borderRadius: 999, border: "1px solid #0B0F0E", background: "#C9F24D", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
                   <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 2l8 8M10 2L2 10" stroke="#0B0F0E" strokeWidth="1.8" strokeLinecap="round" /></svg>
@@ -1552,204 +1523,74 @@ export default function StopViewer({ pathId, stopId, onNav, onSelectStop, initia
               left: isMobile ? 0 : 52,
               right: isMobile ? 0 : undefined,
               bottom: isMobile ? 0 : undefined,
-              top: isMobile ? undefined : 166,
-              width: isMobile ? "100%" : "min(310px,calc(100vw - 90px))",
+              top: isMobile ? undefined : 48,
+              width: isMobile ? "100%" : "min(320px,calc(100vw - 75px))",
               height: isMobile ? "33.33vh" : undefined,
-              maxHeight: isMobile ? "33.33vh" : undefined,
-              borderRadius: isMobile ? "16px 16px 0 0" : 20,
-              overflow: "hidden",
+              maxHeight: isMobile ? "33.33vh" : "calc(100vh - 120px)",
               display: "flex",
               flexDirection: "column",
-              background: "#14504A",
-              color: "#F4F2ED",
-              border: "1px solid #0B0F0E",
-              boxShadow: isMobile ? "0 -8px 32px -8px rgba(11,15,14,.9)" : "0 18px 42px -24px rgba(11,15,14,.9)",
-              padding: isMobile ? "10px 14px" : 18,
-              zIndex: 600,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: isMobile ? 6 : 12, flexShrink: 0 }}>
-              <div style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: ".12em", color: "#C9F24D" }}>{curPath.name.toUpperCase()}</div>
-              <button onClick={() => setPathPanelOpen(false)} style={{ width: 26, height: 26, borderRadius: 999, border: "1px solid #0B0F0E", background: "#C9F24D", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
-                <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 2l8 8M10 2L2 10" stroke="#0B0F0E" strokeWidth="1.8" strokeLinecap="round" /></svg>
-              </button>
-            </div>
-            <div className="gp-popover-scroll" style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1, minHeight: 0, overflowY: "auto", paddingRight: 4 }}>
-              {curPath.stops.map((s, i) => {
-                const on = i === stopIdx;
-                return (
-                  <button key={s.id} onClick={() => { goToStop(s.id); setPathPanelOpen(false); }}
-                    style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: isMobile ? "7px 12px" : "10px 14px", border: "1px solid", borderColor: on ? "#C9F24D" : "rgba(255,253,248,.14)", borderRadius: 12, background: on ? "rgba(201,242,77,.15)" : "rgba(255,253,248,.07)", cursor: "pointer", textAlign: "left", color: "#F4F2ED", fontFamily: "inherit", transition: "background .15s" }}>
-                    <span style={{ width: 22, height: 22, borderRadius: 999, border: "2px solid", borderColor: on ? "#C9F24D" : "rgba(255,253,248,.4)", background: on ? "#C9F24D" : "transparent", color: on ? "#0B0F0E" : "rgba(255,253,248,.6)", display: "grid", placeItems: "center", fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
-                      {i + 1}
-                    </span>
-                    <span style={{ fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.title}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Navigation arrow config panel */}
-        {navConfigOpen && curPath.stops.length > 1 && (
-          <div
-            style={{
-              pointerEvents: "auto",
-              position: isMobile ? "fixed" : "absolute",
-              left: isMobile ? 0 : 52,
-              right: isMobile ? 0 : undefined,
-              bottom: isMobile ? 0 : undefined,
-              top: isMobile ? undefined : 166,
-              width: isMobile ? "100%" : "min(310px,calc(100vw - 90px))",
-              height: isMobile ? "33.33vh" : undefined,
-              maxHeight: isMobile ? "33.33vh" : "calc(100vh - 220px)",
-              overflowY: "auto",
               borderRadius: isMobile ? "16px 16px 0 0" : 20,
+              overflow: "hidden",
               background: "rgba(255,253,248,.96)",
               border: "1px solid rgba(11,15,14,.14)",
               backdropFilter: "blur(10px)",
               boxShadow: isMobile ? "0 -8px 32px -8px rgba(11,15,14,.8)" : "0 18px 42px -24px rgba(11,15,14,.8)",
-              padding: isMobile ? "12px 16px" : 18,
               zIndex: 600,
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-              <span style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: ".1em", color: "#5A635F" }}>NAVIGATION ARROWS</span>
-              <button onClick={() => { setNavConfigOpen(false); setPlacingArrow(null); }} style={{ width: 28, height: 28, borderRadius: 999, border: "1px solid #0B0F0E", background: "#C9F24D", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
+            <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "12px 14px 12px 18px", borderBottom: "1px solid rgba(11,15,14,.1)" }}>
+              <span style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "#3E4744" }}>{curPath.name.toUpperCase()} · {curPath.stops.length} STOPS</span>
+              <button onClick={() => setPathPanelOpen(false)} style={{ width: 28, height: 28, borderRadius: 999, border: "1px solid #0B0F0E", background: "#C9F24D", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
                 <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 2l8 8M10 2L2 10" stroke="#0B0F0E" strokeWidth="1.8" strokeLinecap="round" /></svg>
               </button>
             </div>
-
-            {placingArrow && (
-              <div style={{ marginBottom: 14, padding: "10px 14px", borderRadius: 12, background: "#C9F24D", border: "1px solid #0B0F0E", fontSize: 13, fontWeight: 600, textAlign: "center" }}>
-                Click in the panorama to place the {placingArrow === "next" ? "NEXT" : "PREV"} arrow
-              </div>
-            )}
-
-            {/* Next stop arrow config */}
-            {stopIdx < curPath.stops.length - 1 && (
-              <div style={{ marginBottom: 14, padding: "14px", borderRadius: 14, border: "1px solid rgba(11,15,14,.12)", background: "#F7F6F1" }}>
-                <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ color: "#14504A" }}>→</span> Next: {curPath.stops[stopIdx + 1].title}
-                </div>
-                <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: ".08em", color: "#5A635F", marginBottom: 4 }}>YAW</div>
-                    <input
-                      key={`next-yaw-${arrowConfig.nextArrow?.yaw}`}
-                      type="number" step="0.1"
-                      defaultValue={arrowConfig.nextArrow?.yaw ?? ""}
-                      placeholder={bearingBetween(curStop.ll[0], curStop.ll[1], curPath.stops[stopIdx + 1].ll[0], curPath.stops[stopIdx + 1].ll[1]).toFixed(1)}
-                      onBlur={(e) => {
-                        const val = parseFloat(e.target.value);
-                        if (!isNaN(val)) {
-                          const p = arrowConfig.nextArrow?.pitch ?? -10;
-                          const nc = { ...arrowConfig, nextArrow: { yaw: val, pitch: p } };
-                          setArrowConfig(nc); persistNavArrows(pathId, stopId, nc);
-                        }
-                      }}
-                      style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid rgba(11,15,14,.18)", background: "#FFFDF8", fontFamily: "'Instrument Sans',sans-serif", fontSize: 13, color: "#0B0F0E", outline: "none", boxSizing: "border-box" }}
-                    />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: ".08em", color: "#5A635F", marginBottom: 4 }}>PITCH</div>
-                    <input
-                      key={`next-pitch-${arrowConfig.nextArrow?.pitch}`}
-                      type="number" step="0.1"
-                      defaultValue={arrowConfig.nextArrow?.pitch ?? ""}
-                      placeholder="-10.0"
-                      onBlur={(e) => {
-                        const val = parseFloat(e.target.value);
-                        if (!isNaN(val)) {
-                          const fallbackYaw = bearingBetween(curStop.ll[0], curStop.ll[1], curPath.stops[stopIdx + 1].ll[0], curPath.stops[stopIdx + 1].ll[1]);
-                          const y = arrowConfig.nextArrow?.yaw ?? fallbackYaw;
-                          const nc = { ...arrowConfig, nextArrow: { yaw: y, pitch: val } };
-                          setArrowConfig(nc); persistNavArrows(pathId, stopId, nc);
-                        }
-                      }}
-                      style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid rgba(11,15,14,.18)", background: "#FFFDF8", fontFamily: "'Instrument Sans',sans-serif", fontSize: 13, color: "#0B0F0E", outline: "none", boxSizing: "border-box" }}
-                    />
-                  </div>
-                </div>
-                <div style={{ display: "flex", gap: 8 }}>
+            <div className="gp-popover-scroll" style={{ display: "flex", flexDirection: "column", gap: 6, flex: "1 1 auto", minHeight: 0, overflowY: "auto", padding: "10px 14px" }}>
+              {curPath.stops.map((s, i) => {
+                const on = i === stopIdx;
+                return (
                   <button
-                    onClick={() => setPlacingArrow(placingArrow === "next" ? null : "next")}
-                    style={{ flex: 1, padding: "9px 0", borderRadius: 10, border: placingArrow === "next" ? "1.5px solid #0B0F0E" : "1px solid rgba(11,15,14,.2)", background: placingArrow === "next" ? "#C9F24D" : "#FFFDF8", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "'Instrument Sans',sans-serif" }}
+                    key={s.id}
+                    onClick={() => { goToStop(s.id); setPathPanelOpen(false); }}
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      padding: "10px 14px",
+                      border: "1px solid",
+                      borderColor: on ? "#0B0F0E" : "rgba(11,15,14,.1)",
+                      borderRadius: 12,
+                      background: on ? "rgba(201,242,77,.28)" : "#FFFDF8",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      color: "#0B0F0E",
+                      fontFamily: "inherit",
+                      transition: "background .15s, border-color .15s",
+                    }}
                   >
-                    {placingArrow === "next" ? "Placing…" : "Place in panorama"}
-                  </button>
-                  {arrowConfig.nextArrow && (
-                    <button
-                      onClick={() => { const nc = { ...arrowConfig }; delete nc.nextArrow; setArrowConfig(nc); persistNavArrows(pathId, stopId, nc); }}
-                      style={{ padding: "9px 12px", borderRadius: 10, border: "1px solid rgba(11,15,14,.2)", background: "#FFFDF8", fontSize: 12, cursor: "pointer", color: "#E71D36", fontFamily: "'Instrument Sans',sans-serif" }}
-                    >Reset</button>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Prev stop arrow config */}
-            {stopIdx > 0 && (
-              <div style={{ padding: "14px", borderRadius: 14, border: "1px solid rgba(11,15,14,.12)", background: "#F7F6F1" }}>
-                <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ color: "#14504A" }}>←</span> Prev: {curPath.stops[stopIdx - 1].title}
-                </div>
-                <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: ".08em", color: "#5A635F", marginBottom: 4 }}>YAW</div>
-                    <input
-                      key={`prev-yaw-${arrowConfig.prevArrow?.yaw}`}
-                      type="number" step="0.1"
-                      defaultValue={arrowConfig.prevArrow?.yaw ?? ""}
-                      placeholder={bearingBetween(curStop.ll[0], curStop.ll[1], curPath.stops[stopIdx - 1].ll[0], curPath.stops[stopIdx - 1].ll[1]).toFixed(1)}
-                      onBlur={(e) => {
-                        const val = parseFloat(e.target.value);
-                        if (!isNaN(val)) {
-                          const p = arrowConfig.prevArrow?.pitch ?? -10;
-                          const nc = { ...arrowConfig, prevArrow: { yaw: val, pitch: p } };
-                          setArrowConfig(nc); persistNavArrows(pathId, stopId, nc);
-                        }
+                    <span
+                      style={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: 999,
+                        border: "1.5px solid #0B0F0E",
+                        background: on ? "#C9F24D" : "rgba(11,15,14,.06)",
+                        color: "#0B0F0E",
+                        display: "grid",
+                        placeItems: "center",
+                        fontFamily: "'Instrument Sans',sans-serif",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        flexShrink: 0,
                       }}
-                      style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid rgba(11,15,14,.18)", background: "#FFFDF8", fontFamily: "'Instrument Sans',sans-serif", fontSize: 13, color: "#0B0F0E", outline: "none", boxSizing: "border-box" }}
-                    />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: ".08em", color: "#5A635F", marginBottom: 4 }}>PITCH</div>
-                    <input
-                      key={`prev-pitch-${arrowConfig.prevArrow?.pitch}`}
-                      type="number" step="0.1"
-                      defaultValue={arrowConfig.prevArrow?.pitch ?? ""}
-                      placeholder="-10.0"
-                      onBlur={(e) => {
-                        const val = parseFloat(e.target.value);
-                        if (!isNaN(val)) {
-                          const fallbackYaw = bearingBetween(curStop.ll[0], curStop.ll[1], curPath.stops[stopIdx - 1].ll[0], curPath.stops[stopIdx - 1].ll[1]);
-                          const y = arrowConfig.prevArrow?.yaw ?? fallbackYaw;
-                          const nc = { ...arrowConfig, prevArrow: { yaw: y, pitch: val } };
-                          setArrowConfig(nc); persistNavArrows(pathId, stopId, nc);
-                        }
-                      }}
-                      style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid rgba(11,15,14,.18)", background: "#FFFDF8", fontFamily: "'Instrument Sans',sans-serif", fontSize: 13, color: "#0B0F0E", outline: "none", boxSizing: "border-box" }}
-                    />
-                  </div>
-                </div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button
-                    onClick={() => setPlacingArrow(placingArrow === "prev" ? null : "prev")}
-                    style={{ flex: 1, padding: "9px 0", borderRadius: 10, border: placingArrow === "prev" ? "1.5px solid #0B0F0E" : "1px solid rgba(11,15,14,.2)", background: placingArrow === "prev" ? "#C9F24D" : "#FFFDF8", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "'Instrument Sans',sans-serif" }}
-                  >
-                    {placingArrow === "prev" ? "Placing…" : "Place in panorama"}
+                    >
+                      {i + 1}
+                    </span>
+                    <span style={{ fontSize: 13, fontWeight: on ? 700 : 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.title}</span>
                   </button>
-                  {arrowConfig.prevArrow && (
-                    <button
-                      onClick={() => { const nc = { ...arrowConfig }; delete nc.prevArrow; setArrowConfig(nc); persistNavArrows(pathId, stopId, nc); }}
-                      style={{ padding: "9px 12px", borderRadius: 10, border: "1px solid rgba(11,15,14,.2)", background: "#FFFDF8", fontSize: 12, cursor: "pointer", color: "#E71D36", fontFamily: "'Instrument Sans',sans-serif" }}
-                    >Reset</button>
-                  )}
-                </div>
-              </div>
-            )}
+                );
+              })}
+            </div>
           </div>
         )}
       </div>

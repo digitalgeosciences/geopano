@@ -1405,21 +1405,38 @@ export default function MapPage({ onNav, onSelectStop, selectedPathId, selectedS
         const fmtDeg = (val: number, pos: string, neg: string) => `${Math.abs(val).toFixed(4)}° ${val >= 0 ? pos : neg}`;
         const coordText = mouseCoords ? `${fmtDeg(mouseCoords.lat, "N", "S")}, ${fmtDeg(mouseCoords.lng, "E", "W")}` : "";
         return (
-          <div style={{ position: "absolute", left: "clamp(12px,2vw,24px)", bottom: "clamp(12px,2vw,24px)", zIndex: isMobile ? 499 : 500, display: "flex", alignItems: "center", gap: 10, padding: "6px 14px", borderRadius: 999, background: "rgba(255,253,248,.92)", border: "1px solid rgba(11,15,14,.14)", backdropFilter: "blur(8px)", boxShadow: "0 4px 14px -4px rgba(11,15,14,.2)", pointerEvents: "auto" }}>
+          <div
+            style={{
+              position: "absolute",
+              left: "clamp(12px,2vw,24px)",
+              bottom: isMobile ? 24 : "clamp(14px,2vw,24px)",
+              zIndex: 500,
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              padding: "4px 0",
+              background: "none",
+              border: "none",
+              backdropFilter: "none",
+              boxShadow: "none",
+              pointerEvents: "auto",
+              filter: "drop-shadow(0 1px 1.5px rgba(255,253,248,.95)) drop-shadow(0 0 3px rgba(255,253,248,.9))",
+            }}
+          >
             <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
               <div style={{ position: "relative", height: 8, width: barPx, flexShrink: 0 }}>
                 <div style={{ position: "absolute", left: 0, top: 0, width: 1.5, height: 8, background: "#0B0F0E", borderRadius: 1 }} />
                 <div style={{ position: "absolute", left: barPx / 2 - 0.75, top: 2, width: 1.5, height: 6, background: "#0B0F0E", borderRadius: 1 }} />
                 <div style={{ position: "absolute", right: 0, top: 0, width: 1.5, height: 8, background: "#0B0F0E", borderRadius: 1 }} />
                 <div style={{ position: "absolute", left: 0, top: 3, height: 2.5, width: barPx / 2, background: "#0B0F0E" }} />
-                <div style={{ position: "absolute", left: barPx / 2, top: 3, height: 2.5, width: barPx / 2, background: "rgba(11,15,14,.18)" }} />
+                <div style={{ position: "absolute", left: barPx / 2, top: 3, height: 2.5, width: barPx / 2, background: "rgba(11,15,14,.3)" }} />
               </div>
               <span style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: ".04em", color: "#0B0F0E", whiteSpace: "nowrap" }}>{label}</span>
             </div>
             {mouseCoords && (
               <>
-                <div style={{ width: 1, height: 12, background: "rgba(11,15,14,.15)", flexShrink: 0 }} />
-                <span style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 600, letterSpacing: ".02em", color: "#3E4744", whiteSpace: "nowrap" }}>
+                <div style={{ width: 1, height: 12, background: "rgba(11,15,14,.3)", flexShrink: 0 }} />
+                <span style={{ fontFamily: "'Instrument Sans',sans-serif", fontSize: 11, fontWeight: 600, letterSpacing: ".02em", color: "#0B0F0E", whiteSpace: "nowrap" }}>
                   {coordText}
                 </span>
               </>

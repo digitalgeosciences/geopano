@@ -85,77 +85,115 @@ export default function Header({ view, onNav }: HeaderProps) {
           </a>
         )}
 
-        {/* Mobile: Sign up + hamburger */}
+        {/* Mobile: hamburger */}
         {isMobile && (
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <a
-              href="#signup"
-              onClick={(e) => { e.preventDefault(); handleNav("signup"); }}
-              style={{ display: "inline-flex", alignItems: "center", padding: "8px 14px", borderRadius: 999, background: "#C9F24D", color: "#0B0F0E", fontSize: 13, fontWeight: 700, border: "1px solid #0B0F0E", flexShrink: 0 }}
-            >
-              Sign up
-            </a>
-            <button
-              onClick={() => setMenuOpen((o) => !o)}
-              aria-label={menuOpen ? "Close menu" : "Open menu"}
-              aria-expanded={menuOpen}
-              style={{ width: 38, height: 38, borderRadius: 10, border: "1px solid rgba(11,15,14,.18)", background: menuOpen ? "#0B0F0E" : "#FFFDF8", color: menuOpen ? "#F4F2ED" : "#0B0F0E", display: "grid", placeItems: "center", cursor: "pointer", transition: "background .15s", flexShrink: 0 }}
-            >
-              {menuOpen ? (
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                </svg>
-              ) : (
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                </svg>
-              )}
-            </button>
-          </div>
+          <button
+            onClick={() => setMenuOpen((o) => !o)}
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={menuOpen}
+            style={{ width: 38, height: 38, borderRadius: 10, border: "1px solid rgba(11,15,14,.18)", background: menuOpen ? "#0B0F0E" : "#FFFDF8", color: menuOpen ? "#F4F2ED" : "#0B0F0E", display: "grid", placeItems: "center", cursor: "pointer", transition: "background .15s", flexShrink: 0 }}
+          >
+            {menuOpen ? (
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+            )}
+          </button>
         )}
       </header>
 
-      {/* Mobile dropdown menu */}
+      {/* Mobile backdrop */}
+      {isMobile && menuOpen && (
+        <div
+          onClick={() => setMenuOpen(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9998,
+            background: "rgba(11,15,14,.18)",
+            backdropFilter: "blur(2px)",
+          }}
+        />
+      )}
+
+      {/* Mobile dropdown menu: compact width, floating card docked to right */}
       {isMobile && menuOpen && (
         <div
           style={{
             position: "fixed",
-            top: 57,
-            left: 0,
-            right: 0,
-            zIndex: 39,
-            background: "rgba(244,242,237,.98)",
-            backdropFilter: "blur(16px)",
-            borderBottom: "1px solid rgba(11,15,14,.1)",
-            padding: "8px 16px 16px",
+            top: 58,
+            right: 14,
+            width: "min(220px, calc(100vw - 28px))",
+            zIndex: 9999,
+            background: "rgba(255,253,248,.98)",
+            backdropFilter: "blur(20px)",
+            borderRadius: 18,
+            border: "1px solid rgba(11,15,14,.14)",
+            boxShadow: "0 16px 40px -12px rgba(11,15,14,.35)",
+            padding: "8px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
           }}
         >
-          {NAV_ITEMS.map((item) => (
-            <button
-              key={item.view}
-              onClick={() => handleNav(item.view)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                width: "100%",
-                padding: "14px 4px",
-                border: "none",
-                borderBottom: "1px solid rgba(11,15,14,.07)",
-                background: "transparent",
-                cursor: "pointer",
-                textAlign: "left",
-                fontFamily: "inherit",
-              }}
-            >
-              <span style={{ fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: view === item.view ? 700 : 500, fontSize: 18, letterSpacing: "-.02em", color: "#0B0F0E" }}>
-                {item.label}
-              </span>
-              {view === item.view && (
-                <span style={{ width: 8, height: 8, borderRadius: 999, background: "#C9F24D", border: "1px solid #0B0F0E", display: "block" }} />
-              )}
-            </button>
-          ))}
+          {NAV_ITEMS.map((item) => {
+            const active = view === item.view;
+            return (
+              <button
+                key={item.view}
+                onClick={() => handleNav(item.view)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  width: "100%",
+                  padding: "10px 14px",
+                  borderRadius: 10,
+                  border: "none",
+                  background: active ? "rgba(11,15,14,.07)" : "transparent",
+                  cursor: "pointer",
+                  textAlign: "left",
+                  fontFamily: "inherit",
+                  transition: "background .15s",
+                }}
+              >
+                <span style={{ fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: active ? 700 : 500, fontSize: 15, letterSpacing: "-.01em", color: "#0B0F0E" }}>
+                  {item.label}
+                </span>
+                {active && (
+                  <span style={{ width: 6, height: 6, borderRadius: 999, background: "#0B0F0E", display: "block" }} />
+                )}
+              </button>
+            );
+          })}
+
+          <div style={{ height: 1, background: "rgba(11,15,14,.08)", margin: "4px 4px" }} />
+
+          {/* Sign up / Log in moved inside menu bar */}
+          <button
+            onClick={() => handleNav("signup")}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "100%",
+              padding: "10px 14px",
+              borderRadius: 12,
+              border: "1px solid #0B0F0E",
+              background: "#C9F24D",
+              color: "#0B0F0E",
+              fontSize: 13,
+              fontWeight: 700,
+              fontFamily: "'Instrument Sans',sans-serif",
+              cursor: "pointer",
+            }}
+          >
+            Sign up / Log in
+          </button>
         </div>
       )}
     </>
